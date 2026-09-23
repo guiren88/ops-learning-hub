@@ -417,7 +417,21 @@ cat /etc/resolv.conf             # 看 nameserver（K8s 里是 CoreDNS）</div>
           <p>排查套路：<span class="kw">先确认是系统解析还是网络解析</span>——本机 hosts 里有记录但 dig 查不到？那是 hosts 优先。K8s 里 Pod 解析失败：查 CoreDNS 是否 Running、<span class="kw">resolv.conf</span> 的 nameserver 是否指向 CoreDNS、search 域是否配置。</p>`},
         { id:9, title:'DHCP 与 IP 管理', tags:[],
           content:`<p>DHCP 四步：<b>Discover → Offer → Request → ACK</b>。租约（lease）到期前客户端会续租（T1/T2 两个时间点）。</p>
-          <p>排查：<span class="kw">dhclient -r</span> 释放、<span class="kw">dhclient</span> 重新获取；租约文件在 /var/lib/dhcp/。虚拟化环境注意 DHCP 与静态 IP 冲突（ARP 冲突报错）。</p>`}
+          <p>排查：<span class="kw">dhclient -r</span> 释放、<span class="kw">dhclient</span> 重新获取；租约文件在 /var/lib/dhcp/。虚拟化环境注意 DHCP 与静态 IP 冲突（ARP 冲突报错）。</p>`},
+        { id:6, title:'路由交换与 VLAN', tags:['重要'],
+          content:`<p>二层与三层的基础概念，传统网络面试必问：</p>
+          <table class="tbl"><colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+          <tr><th>概念</th><th>一句话</th></tr>
+          <tr><td>VLAN</td><td>二层（交换机）内逻辑隔离广播域：VLAN 10 / VLAN 20 互不相见，跨 VLAN 必须走三层路由（或三层交换机）</td></tr>
+          <tr><td>路由</td><td>三层转发：静态路由（手写 route add）/ 动态路由（OSPF 自动学习，企业内网标配）</td></tr>
+          <tr><td>ACL</td><td>访问控制列表：按五元组/规则允许或拒绝流量（防火墙的底层思想，见"防火墙与五元组"）</td></tr>
+          <tr><td>VPN</td><td>加密隧道打通两个内网：IPsec（站点到站点）/ WireGuard（轻量新秀）——远程办公/多云互联</td></tr></table>
+          <div class="code-block"># 排障口诀：二层问题看 VLAN/ARP，三层问题看路由/ACL
+ip addr show            # 看 IP 和所属网段
+ip route                # 看路由表（有没有缺默认路由）
+arp -a                  # 看二层 MAC 学习结果
+ping 网关不通 → 先 arp 查二层，再 ip route 查三层</div>
+          <p>K8s 里对应：CNI 负责 Pod 二层互通（overlay），Node 间三层路由 / 策略用 NetworkPolicy（模块 5）。</p>`}
       ]},
       { title:'安全与负载设备', points:[
         { id:10, title:'防火墙与五元组', tags:['重要'],
@@ -538,6 +552,21 @@ FROM nginx:1.27-alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 EXPOSE 80</div>
           <p>要点：<b>易变内容放后面</b>（缓存命中）、多阶段构建瘦身、<b>不用 root 用户跑应用</b>（USER 指令）、固定 tag 不用 latest（可复现）。</p>`}
+      ]},
+      { title:'虚拟化基础', points:[
+        { id:3, title:'VMware / KVM / PVE 与容器', tags:['核心','面试'],
+          content:`<p>虚拟化是容器之前的主流隔离技术，面试常对比两者：</p>
+          <table class="tbl"><colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+          <tr><th>方案</th><th>说明</th></tr>
+          <tr><td>VMware</td><td>商业虚拟化（ESXi 裸机 + vCenter 管理），企业传统环境主力</td></tr>
+          <tr><td>KVM</td><td>Linux 内核原生虚拟化（开源，云厂商底层常客），全虚拟化 + 硬件辅助</td></tr>
+          <tr><td>PVE（Proxmox VE）</td><td>基于 KVM 的开源虚拟化平台（Web 管理），个人/小团队首选——你的三台 K8s 节点就跑在 PVE 上</td></tr>
+          <tr><td>容器（Docker/K8s）</td><td>共享宿主机内核的进程级隔离（Namespace + Cgroups），比虚拟机轻一个量级</td></tr></table>
+          <div class="code-block"># 一句话对比
+虚拟机 = 完整 OS 的隔离（重量级，几 GB 起步）
+容器   = 进程级隔离（轻量级，MB 级，秒级启动）
+虚拟化层关系：PVE(基于KVM) → VM(装 Ubuntu) → 里面跑 Docker/containerd → 上面跑 K8s</div>
+          <p class="kbox"><b>面试讲法：</b>"我的实验环境是 PVE（KVM 封装）上 3 台 Ubuntu 虚拟机，再在 VM 里装 containerd + kubeadm 搭 K8s——虚拟机解决隔离，容器解决密度，两层我都踩过。"</p>`}
       ]}
     ]
   },
@@ -1069,7 +1098,22 @@ groups:
     annotations:
       summary: "节点 {{ $labels.instance }} 挂了"
       description: "已持续 {{ $value }} 状态 2 分钟"</div>
-          <p>告警设计原则：<b>for 防抖动</b>、告警要可执行（带上排查入口）、区分告警（需人处理）与通知（看一眼就行）、避免告警风暴（聚合+路由）。</p>`}
+          <p>告警设计原则：<b>for 防抖动</b>、告警要可执行（带上排查入口）、区分告警（需人处理）与通知（看一眼就行）、避免告警风暴（聚合+路由）。</p>`},
+        { id:4, title:'Zabbix vs Prometheus', tags:['重要','面试'],
+          content:`<p>JD 里传统监控（Zabbix）和云原生监控（Prometheus）都可能出现，面试常问区别：</p>
+          <table class="tbl"><colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+          <tr><th></th><th>Zabbix（传统）</th><th>Prometheus（云原生）</th></tr>
+          <tr><td>采集模式</td><td>Server 主动轮询 Agent（或 Agent 主动上报）</td><td>主动 Pull 拉取（服务发现自动找目标）</td></tr>
+          <tr><td>数据模型</td><td>数据库存历史数据</td><td>时间序列 + 标签（多维度聚合）</td></tr>
+          <tr><td>告警</td><td>触发器（Trigger）+ 告警媒介（邮件/短信）</td><td>PromQL 规则 + Alertmanager 路由</td></tr>
+          <tr><td>适合场景</td><td>物理机 / 网络设备 / IDC 传统监控</td><td>容器 / K8s / 微服务动态环境</td></tr></table>
+          <div class="code-block"># Zabbix 核心组件一句话
+Zabbix Server（中枢） + Zabbix Agent（装在被监控机上）
++ 触发器（阈值规则） + 告警媒介（通知渠道）
+# 传统项目面试答法
+"Zabbix 是传统轮询式监控，Agent 装到每台机器，触发器做阈值告警；
+ 云原生环境我用 Prometheus + Grafana，Pull 模型天然适配 K8s 动态扩缩容。"</div>
+          <p>判断：目标岗偏云原生就主攻 Prometheus 栈，Zabbix 懂原理 + 能讲对比就够。</p>`}
       ]},
       { title:'日志体系', points:[
         { id:4, title:'Loki vs ELK', tags:['重要'],
@@ -1140,7 +1184,21 @@ mysql -u root -p mydb < mydb.sql</div>
 SET GLOBAL long_query_time=2;      # 超过 2 秒记录
 EXPLAIN SELECT * FROM orders WHERE user_id=123;
 # 看 key（是否用索引）、type（ref/ALL 全表扫）、rows（扫描行数）</div>
-          <p>优化顺序：<b>索引 → SQL 改写 → 参数 → 架构</b>（缓存/读写分离/分库分表）。type=ALL 大表必挂。覆盖索引（extra: Using index）是杀手锏。</p>`}
+          <p>优化顺序：<b>索引 → SQL 改写 → 参数 → 架构</b>（缓存/读写分离/分库分表）。type=ALL 大表必挂。覆盖索引（extra: Using index）是杀手锏。</p>`},
+        { id:4, title:'数据库选型：MySQL / PostgreSQL / MongoDB', tags:['重要'],
+          content:`<p>JD 要求"了解 PostgreSQL / MongoDB"，面试被问"你们为什么用 X 不用 Y"时这样答：</p>
+          <table class="tbl"><colgroup><col style="width:18%"><col style="width:82%"></colgroup>
+          <tr><th>数据库</th><th>一句话定位</th></tr>
+          <tr><td>MySQL</td><td>关系型默认选择：生态最大、主从成熟，互联网业务绝对主力</td></tr>
+          <tr><td>PostgreSQL</td><td>功能更强的关系型：JSONB、GIS、复杂查询——金融/政企/新项目爱用，语法和 MySQL 九成相似</td></tr>
+          <tr><td>MongoDB</td><td>文档型 NoSQL：灵活 schema、天然 JSON——日志/配置/埋点等非强一致场景</td></tr>
+          <tr><td>Oracle</td><td>商业数据库：银行/老牌国企存量系统在用，云原生新项目基本不选</td></tr></table>
+          <div class="code-block"># 面试万能句式（选型三问）
+"① 数据强一致吗？（要 → 关系型 MySQL/PG）
+ ② schema 会频繁变吗？（会 → MongoDB）
+ ③ 数据量/并发多大？（大 → 分库分表或换 NewSQL/分布式）"
+# 一句话：没有最好的数据库，只有最匹配业务模型的</div>
+          <p>补充：Redis 是缓存不是主库；K8s 里有状态应用跑数据库要 StatefulSet + PV（见模块 6）。</p>`}
       ]},
       { title:'Redis', points:[
         { id:4, title:'Redis 核心概念', tags:['核心','面试'],
@@ -1169,7 +1227,7 @@ sentinel monitor mymaster 1.2.3.4 6379 2
           <tr><td>模式</td><td>队列 + Exchange 路由，消息消费后删除</td><td>Topic + 分区，日志保留可回溯</td></tr>
           <tr><td>吞吐</td><td>万级</td><td>百万级</td></tr>
           <tr><td>典型</td><td>订单通知、异步任务、削峰</td><td>日志采集、埋点、流处理</td></tr></table>
-          <p>面试点：<b>为什么 Kafka 吞吐高</b>——顺序写盘 + 分区并行 + 批量/零拷贝。</p>`}
+          <p>面试点：<b>为什么 Kafka 吞吐高</b>——顺序写盘 + 分区并行 + 批量/零拷贝。<b>ZooKeeper</b>：Kafka 早期的元数据协调器（存 broker 列表/分区 Leader，强一致选举）；新版本用自研 KRaft 替代 ZK——被问"ZooKeeper 干嘛的"就答"分布式协调/选举，Kafka 和 Hadoop 生态早期都用它"。</p>`}
       ]},
       { title:'Web 服务', points:[
         { id:7, title:'Nginx 核心配置', tags:['核心'],
@@ -1229,11 +1287,34 @@ r = requests.post("https://api.volcengine.com/ark/v3/chat/completions",
                   headers={"Authorization":"Bearer sk-xxx"},
                   json={"model":"doubao-pro","messages":[{"role":"user","content":"hi"}]})
 print(r.json())</div>
-          <p>技术支持岗面试点：能写脚本做<b>日志统计、API 调用、批量巡检</b>就够，不用刷算法。</p>`}
+          <p>技术支持岗面试点：能写脚本做<b>日志统计、API 调用、批量巡检</b>就够，不用刷算法。</p>`},
+        { id:3, title:'运维自动化脚本实战：API 与批量操作', tags:['实战','面试'],
+          content:`<p>JD 第 8 条"独立编写运维工具 / API 自动化脚本"，这是可直接讲的项目素材：</p>
+          <div class="code-block"># 场景1：批量巡检 3 台服务器（SSH 免密已配，见模块 1）
+for h in k8s-master k8s-node1 k8s-node2; do
+  ssh $h "uptime && df -h / | tail -1 && free -m | head -2" \
+     | sed "s/^/[$h] /"
+done
+
+# 场景2：调 API 拿数据（curl 版）
+TOKEN=$(curl -s -X POST https://api.example.com/auth \
+  -d '{"user":"ops","pwd":"xxx"}' | jq -r .token)
+curl -s -H "Authorization: Bearer $TOKEN" \
+  https://api.example.com/nodes | jq .[].status
+
+# 场景3：Python 版（异常处理 + 幂等）
+import requests
+def get_nodes(token):
+    r = requests.get(url, headers={"Authorization": f"Bearer {token}"},
+                     timeout=5)
+    r.raise_for_status()   # 4xx/5xx 直接抛异常
+    return r.json()
+# 幂等：重复执行结果一致，不会重复创建资源</div>
+          <p class="kbox"><b>面试讲法：</b>"我写过批量巡检脚本（SSH 循环 + 磁盘/内存汇总）和 API 自动化脚本（token 认证 + 批量查询 + 异常处理），把 3 台机器的日常巡检从半小时缩到 30 秒。"——真实、可量化、有细节。</p>`}
       ]},
       { title:'Ansible', points:[
         { id:3, title:'Ansible 核心', tags:['核心'],
-          content:`<p>无 Agent，基于 <b>SSH</b>，幂等（重复执行结果一致）。</p>
+          content:`<p>无 Agent，基于 <b>SSH</b>，幂等（重复执行结果一致）。同类工具 <b>SaltStack</b>：走 Agent + 消息队列（ZeroMQ），大规模下比 Ansible 快，但多一套 Agent 要维护——面试说"我熟 Ansible，SaltStack 是同类竞品、原理相通"就够。</p>
           <div class="code-block"># inventory（清单）
 [master]
 192.168.199.207 ansible_user=sy
@@ -1629,7 +1710,15 @@ const QUIZ = [
   { q:'金丝雀发布的核心思路是？', options:['两套环境整体切换','先放一小部分流量给新版本观察再逐步放量','新老副本交替滚动','停服更新'], answer:1, module:9,
     explain:'金丝雀=先 5%-10% 流量试新版本，无异常逐步放量，异常即回滚——最稳妥的灰度发布。蓝绿才是两套环境切换，滚动是新老交替。' },
   { q:'K8s Deployment 默认的发布策略是？', options:['蓝绿','金丝雀','滚动更新（先建后杀）','重建（先删后建）'], answer:2, module:9,
-    explain:'Deployment 默认滚动更新：新 Pod 就绪才杀旧的（maxSurge/maxUnavailable 控制节奏），服务不中断。' }
+    explain:'Deployment 默认滚动更新：新 Pod 就绪才杀旧的（maxSurge/maxUnavailable 控制节奏），服务不中断。' },
+  { q:'VLAN 的主要作用是？', options:['三层路由转发','在二层隔离广播域','加密网络流量','负载均衡'], answer:1, module:1,
+    explain:'VLAN 在二层（交换机）内逻辑隔离广播域，跨 VLAN 通信必须走三层路由（或三层交换机）。' },
+  { q:'虚拟机与容器的本质区别是？', options:['虚拟机更省资源','容器共享宿主机内核（进程级隔离），虚拟机是完整 OS 隔离','容器有独立内核','没有区别'], answer:1, module:2,
+    explain:'容器是共享内核的进程级隔离（Namespace+Cgroups），轻量秒级启动；虚拟机是完整 OS 隔离，重量级。' },
+  { q:'Zabbix 的采集模式是？', options:['Pull 拉取','Server 主动轮询 Agent（或 Agent 上报）','订阅推送','服务发现自动拉取'], answer:1, module:7,
+    explain:'Zabbix 是传统轮询式监控（Server 问 Agent），Prometheus 才是 Pull 拉取模型——这是传统监控 vs 云原生监控的核心区别。' },
+  { q:'JD 要求"了解 PostgreSQL/MongoDB"，被问选型时正确的思路是？', options:['用最好的数据库','根据业务模型选：强一致→关系型，schema 多变→MongoDB','谁熟用谁','默认用 Oracle'], answer:1, module:8,
+    explain:'选型三问：数据强一致吗（→MySQL/PG）？schema 频繁变吗（→MongoDB）？数据量多大？没有最好只有最匹配。' }
 ];
 
 /* =========================================================
