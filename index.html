@@ -1,0 +1,1899 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>云运维学习中心 · Ops Learning Hub</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='6' fill='%230B1220'/%3E%3Crect x='8' y='9' width='6' height='6' rx='1' fill='%232F9E68'/%3E%3Crect x='8' y='17' width='6' height='6' rx='1' fill='%235B8DEF'/%3E%3Crect x='17' y='9' width='7' height='3' rx='1' fill='%23E2E8F0'/%3E%3Crect x='17' y='14' width='7' height='3' rx='1' fill='%238CA3C3'/%3E%3Crect x='17' y='19' width='7' height='3' rx='1' fill='%23E8A33D'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#0B1220; --bg2:#0E1626; --panel:#121C31; --panel2:#16223C;
+  --line:#22304D; --line2:#2C3E63;
+  --ink:#E2E8F0; --ink2:#8CA3C3; --ink3:#5A6F92;
+  --blue:#5B8DEF; --green:#2F9E68; --amber:#E8A33D; --red:#E5534B; --purple:#9B7BE8;
+  --mono:'IBM Plex Mono','SF Mono',Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  --r:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.75;-webkit-font-smoothing:antialiased}
+::selection{background:rgba(91,141,239,.35)}
+a{color:var(--blue)}
+button{font-family:inherit}
+
+/* ===== 布局 ===== */
+.wrap{display:flex;min-height:100vh}
+.sidebar{
+  width:292px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--line);
+  padding:22px 16px;position:sticky;top:0;height:100vh;overflow-y:auto;
+  display:flex;flex-direction:column;gap:16px;
+}
+.main{flex:1;min-width:0;padding:26px 34px 60px;max-width:1080px}
+@media(max-width:900px){
+  .wrap{flex-direction:column}
+  .sidebar{width:100%;height:auto;position:static;border-right:none;border-bottom:1px solid var(--line);padding:14px 14px 10px}
+  .main{padding:18px 16px 60px}
+  .side-nav{display:flex;overflow-x:auto;gap:8px;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+  .side-nav .nav-item{flex-shrink:0;width:auto}
+}
+@media(max-width:640px){ .side-stats{display:none} }
+
+/* ===== 品牌区 ===== */
+.brand{display:flex;align-items:center;gap:10px;padding:2px 4px}
+.brand .logo{width:34px;height:34px;flex-shrink:0}
+.brand h1{font-size:16px;font-weight:700;letter-spacing:.5px;font-family:var(--mono)}
+.brand .sub{font-size:11px;color:var(--ink3);font-family:var(--mono);margin-top:1px}
+
+/* ===== 统计 ===== */
+.side-stats{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.stat-row{display:flex;justify-content:space-between;font-size:13px;color:var(--ink2);padding:5px 0}
+.stat-row b{font-family:var(--mono);color:var(--ink);font-weight:600}
+.stat-row b.ok{color:var(--green)} .stat-row b.warn{color:var(--amber)}
+.bar{height:6px;background:var(--bg);border-radius:4px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:4px;transition:width .35s}
+.bar i.green{background:linear-gradient(90deg,var(--green),var(--blue))}
+
+/* ===== 搜索 ===== */
+.search{position:relative}
+.search input{
+  width:100%;background:var(--panel);border:1px solid var(--line);border-radius:8px;color:var(--ink);
+  padding:9px 12px 9px 34px;font-size:13px;font-family:var(--mono);outline:none;transition:border-color .2s
+}
+.search input:focus{border-color:var(--blue)}
+.search input::placeholder{color:var(--ink3)}
+.search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--ink3)}
+.search .clear{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--ink3);
+  cursor:pointer;font-size:15px;display:none;padding:2px 4px
+}
+.search .clear.show{display:block}
+
+/* ===== 模块导航 ===== */
+.side-nav{display:flex;flex-direction:column;gap:4px}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;
+  border:1px solid transparent;background:transparent;color:var(--ink2);text-align:left;transition:all .15s;font-size:13px
+}
+.nav-item:hover{background:var(--panel);color:var(--ink)}
+.nav-item.active{background:var(--panel2);border-color:var(--blue);color:var(--ink)}
+.nav-item.done{color:var(--ink)}
+.nav-item.done .num{color:var(--green)}
+.nav-item .num{width:26px;height:26px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--blue)}
+.nav-item .nm{flex:1;font-weight:500}
+.nav-item .st{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+.nav-item.done .st{color:var(--green)}
+.nav-item.active .st{color:var(--blue)}
+
+/* ===== 模式切换 ===== */
+.modebar{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:4px}
+.mode-btn{flex:1;padding:7px 6px;border:none;border-radius:6px;background:transparent;color:var(--ink2);cursor:pointer;font-size:13px;transition:all .15s}
+.mode-btn.active{background:var(--blue);color:#fff;font-weight:600}
+.mode-btn:hover:not(.active){color:var(--ink)}
+
+/* ===== 内容区 ===== */
+.topline{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.crumb{font-family:var(--mono);font-size:12px;color:var(--ink3)}
+.crumb b{color:var(--blue);font-weight:600}
+.module-title{font-size:22px;font-weight:700;display:flex;align-items:center;gap:12px;letter-spacing:.3px}
+.module-title .mico{width:40px;height:40px;flex-shrink:0;color:var(--blue)}
+.module-sub{color:var(--ink2);font-size:14px;margin-top:4px}
+.sec-title{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;color:var(--purple);margin:30px 0 12px;font-family:var(--mono)}
+.sec-title::before{content:'';width:4px;height:16px;background:var(--purple);border-radius:2px}
+.point{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;margin-bottom:10px}
+.point:hover{border-color:var(--line2)}
+.point-h{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.point-h .pt{font-weight:600;color:var(--ink);font-size:15px;flex:1}
+.point-c{color:var(--ink2);font-size:14px;line-height:1.9}
+.point-c p{margin-bottom:8px}
+.point-c p:last-child{margin-bottom:0}
+.point-c ul,.point-c ol{margin-left:22px;margin-bottom:8px}
+.point-c li{margin-bottom:4px}
+.point-c li:last-child{margin-bottom:0}
+.tag{display:inline-flex;align-items:center;gap:4px;background:var(--panel2);color:var(--blue);padding:1px 9px;border-radius:5px;font-size:11px;font-family:var(--mono);border:1px solid var(--line);white-space:nowrap}
+.tag.important{background:rgba(91,141,239,.14);border-color:rgba(91,141,239,.4);color:#9DBBF5}
+.tag.critical{background:rgba(229,83,75,.12);border-color:rgba(229,83,75,.4);color:#F08A84}
+.tag.practice{background:rgba(47,158,104,.12);border-color:rgba(47,158,104,.4);color:#63C99A}
+.tag.interview{background:rgba(232,163,61,.12);border-color:rgba(232,163,61,.4);color:#F2C179}
+.code-block{background:#0A101D;border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:9px 0;font-family:var(--mono);font-size:12.5px;line-height:1.8;color:#C9D7F0;overflow-x:auto;white-space:pre;tab-size:4}
+.code-block .cm{color:#5A6F92}
+.kw{background:rgba(91,141,239,.18);padding:1px 5px;border-radius:4px;color:#9DBBF5}
+.kbox{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:8px 0;font-size:13.5px;color:var(--ink)}
+.kbox b{color:var(--blue)}
+.tbl{width:100%;border-collapse:collapse;margin:10px 0;font-size:13.5px;table-layout:fixed}
+.tbl th,.tbl td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+.tbl th{background:var(--panel2);color:var(--ink);font-weight:600;font-family:var(--mono);font-size:12px}
+.tbl td{color:var(--ink2)}
+.tbl tr:nth-child(even) td{background:rgba(255,255,255,.015)}
+.tbl td b{color:var(--ink)}
+
+/* ===== 控制 ===== */
+.controls{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:28px;padding-top:18px;border-top:1px solid var(--line);flex-wrap:wrap}
+.btn{padding:10px 22px;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-weight:500;transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn:hover:not(:disabled){transform:translateY(-1px)}
+.btn-prev{background:var(--panel2);color:var(--ink2);border:1px solid var(--line)}
+.btn-prev:hover:not(:disabled){color:var(--ink)}
+.btn-next{background:var(--blue);color:#fff}
+.btn-done{background:rgba(47,158,104,.16);border:1px solid rgba(47,158,104,.5);color:var(--green)}
+.btn-done.completed{background:rgba(47,158,104,.3);border-color:var(--green)}
+.btn-star{background:var(--panel2);border:1px solid var(--line);color:var(--ink2);padding:10px 14px}
+.btn-star.on{color:var(--amber);border-color:rgba(232,163,61,.5)}
+.hint{font-size:12px;color:var(--ink3);font-family:var(--mono)}
+
+/* ===== 自测 ===== */
+.quiz-head{display:flex;align-items:center;gap:14px;margin-bottom:16px;flex-wrap:wrap}
+.quiz-score{font-family:var(--mono);font-size:15px;color:var(--ink)}
+.quiz-score b{color:var(--green);font-size:18px}
+.quiz-progress{font-family:var(--mono);font-size:13px;color:var(--ink3)}
+.quiz-q{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:20px;margin-bottom:14px;font-size:16px;font-weight:600;line-height:1.7}
+.quiz-q .qmod{display:inline-block;font-size:11px;font-family:var(--mono);color:var(--blue);background:rgba(91,141,239,.12);border:1px solid rgba(91,141,239,.35);padding:1px 8px;border-radius:5px;margin-bottom:10px}
+.quiz-opt{display:block;width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:13px 16px;margin-bottom:9px;color:var(--ink2);cursor:pointer;font-size:14px;transition:all .15s;line-height:1.6}
+.quiz-opt:hover:not(:disabled){border-color:var(--blue);color:var(--ink)}
+.quiz-opt .opt-key{font-family:var(--mono);color:var(--blue);margin-right:10px;font-weight:600}
+.quiz-opt.correct{background:rgba(47,158,104,.12);border-color:var(--green);color:var(--ink)}
+.quiz-opt.correct .opt-key{color:var(--green)}
+.quiz-opt.wrong{background:rgba(229,83,75,.1);border-color:var(--red);color:var(--ink)}
+.quiz-opt.wrong .opt-key{color:var(--red)}
+.quiz-opt:disabled{cursor:default}
+.quiz-explain{margin-top:14px;background:var(--bg);border-left:3px solid var(--blue);border-radius:6px;padding:12px 16px;font-size:13.5px;color:var(--ink2);display:none}
+.quiz-explain.show{display:block}
+.quiz-explain b{color:var(--blue)}
+.quiz-end{text-align:center;padding:50px 20px}
+.quiz-end .big{font-size:44px;font-family:var(--mono);font-weight:700;color:var(--blue)}
+.quiz-end .note{color:var(--ink2);margin:10px 0 22px}
+
+/* ===== 搜索页 ===== */
+.search-hit{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+.search-hit:hover{border-color:var(--blue)}
+.search-hit .sh-mod{font-family:var(--mono);font-size:11px;color:var(--blue)}
+.search-hit .sh-title{font-weight:600;margin:3px 0}
+.search-hit .sh-snip{font-size:13px;color:var(--ink2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+mark{background:rgba(232,163,61,.3);color:#F2C179;padding:0 2px;border-radius:3px}
+
+/* ===== 空态/提示 ===== */
+.empty{text-align:center;color:var(--ink3);padding:50px 20px;font-size:14px}
+.empty .big{font-size:38px;font-family:var(--mono);color:var(--line2);margin-bottom:10px}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line2);color:var(--ink);padding:10px 20px;border-radius:8px;font-size:13px;opacity:0;transition:all .3s;pointer-events:none;z-index:99;font-family:var(--mono)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ===== 滚动条 ===== */
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:var(--line2);border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:#3A5079}
+::-webkit-scrollbar-track{background:transparent}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- ===== 侧栏 ===== -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="2" y="2" width="28" height="28" rx="6" stroke="#5B8DEF" stroke-width="1.6"/>
+        <rect x="8" y="9" width="6" height="6" rx="1" fill="#2F9E68"/>
+        <rect x="8" y="17" width="6" height="6" rx="1" fill="#5B8DEF"/>
+        <rect x="17" y="9" width="7" height="3" rx="1" fill="#E2E8F0"/>
+        <rect x="17" y="14" width="7" height="3" rx="1" fill="#8CA3C3"/>
+        <rect x="17" y="19" width="7" height="3" rx="1" fill="#E8A33D"/>
+      </svg>
+      <div>
+        <h1>云运维学习中心</h1>
+        <div class="sub">OPS LEARNING HUB</div>
+      </div>
+    </div>
+
+    <div class="side-stats">
+      <div class="stat-row"><span>掌握率</span><b id="st-mastery" class="ok">0%</b></div>
+      <div class="stat-row"><span>已学模块</span><b id="st-done">0/10</b></div>
+      <div class="stat-row"><span>收藏知识点</span><b id="st-star">0</b></div>
+      <div class="stat-row"><span>学习轮次</span><b id="st-loop">0</b></div>
+      <div class="bar"><i id="st-bar" style="width:0%"></i></div>
+    </div>
+
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" id="search-input" placeholder="全局搜索知识点…" autocomplete="off">
+      <button class="clear" id="search-clear" title="清空">×</button>
+    </div>
+
+    <nav class="side-nav" id="nav"></nav>
+
+    <div class="modebar">
+      <button class="mode-btn active" data-mode="browse">浏览</button>
+      <button class="mode-btn" data-mode="loop">循环</button>
+      <button class="mode-btn" data-mode="quiz">自测</button>
+    </div>
+  </aside>
+
+  <!-- ===== 主区 ===== -->
+  <main class="main" id="main"></main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   数据：10 大模块（云运维 SRE 主线 + AI 技术支持突击线）
+   ========================================================= */
+const ICONS = {
+  linux:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m5 7 5 5-5 5"/><path d="M12 17h7"/></svg>',
+  net:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="5" cy="12" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="M7 11.2 17 6.8M7 12.8l10 4.4"/></svg>',
+  ctr:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 6.5v.01M10 6.5v.01"/></svg>',
+  k8s:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v5c0 4.5 3.4 8.6 8 10 4.6-1.4 8-5.5 8-10V6l-8-3z"/><path d="M12 8v8M8.5 10.5 15.5 14M15.5 10.5 8.5 14"/></svg>',
+  mesh:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="2.5" y="2.5" width="7" height="7" rx="1.5"/><rect x="14.5" y="14.5" width="7" height="7" rx="1.5"/><path d="M6 9.5V13a3 3 0 0 0 3 3h3"/><path d="M18 14.5V11a3 3 0 0 0-3-3h-3"/></svg>',
+  sec:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4 5.5v5c0 4.8 3.4 8.9 8 10.5 4.6-1.6 8-5.7 8-10.5v-5l-8-3z"/><path d="m9 11.5 2.2 2.2L15.5 9.3"/></svg>',
+  obs:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19V10M9.5 19V5M15 19v-7M20.5 19V8"/></svg>',
+  db:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><ellipse cx="12" cy="5.5" rx="8" ry="2.8"/><path d="M4 5.5v13c0 1.55 3.6 2.8 8 2.8s8-1.25 8-2.8v-13"/><path d="M4 12c0 1.55 3.6 2.8 8 2.8s8-1.25 8-2.8"/></svg>',
+  auto:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9 17 7M7 17l-2.1 2.1"/></svg>',
+  cloud:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4 4 0 0 1-.6-7.95A5.5 5.5 0 0 1 17 9.5 3.8 3.8 0 0 1 17.5 18H7z"/></svg>',
+  ai:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>',
+  lab:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6.2L4.5 19a2 2 0 0 0 1.8 3h9.4a2 2 0 0 0 1.8-3L14 9.2V3"/><path d="M6.5 15h11"/></svg>'
+};
+
+const MODULES = [
+  {
+    id:1, title:'Linux 与网络', icon:'linux', subtitle:'系统底座 + 网络全栈，云运维的地基',
+    sections:[
+      { title:'基础命令速查', points:[
+        { id:15, title:'目录与文件操作', tags:['入门','必备'],
+          content:`<div class="code-block">ls -l / -a / -h     # 列表：长格式 / 含隐藏文件 / 人类可读大小
+cd /home/user       # 切换目录；cd .. 上级；cd ~ 家目录；cd - 回上一个目录
+pwd                 # 打印当前所在目录
+mkdir -p a/b/c      # 递归创建多级目录
+touch file          # 创建空文件 / 更新时间戳
+cp -r src dst       # 复制（-r 递归复制目录）
+mv a b              # 移动 / 重命名（同目录即改名）
+rm -rf dir          # 删除目录树（-r 递归 -f 强制）</div>
+          <p class="kbox"><b>高危提醒：</b><span class="kw">rm -rf</span> 是运维第一高危命令（rm -rf / 会把系统删没）。生产环境删东西前先 <span class="kw">ls</span> 确认路径，或先 <span class="kw">mv</span> 到 /tmp 观察一天再删。</p>`},
+        { id:16, title:'查看与搜索', tags:['入门','必备'],
+          content:`<div class="code-block">cat file            # 全文输出（适合小文件）
+less file           # 分页浏览（q 退出，/ 搜索，G 到底部）——大文件首选
+tail -f /var/log/nginx/access.log  # 实时跟踪日志（排障神器！Ctrl+C 退出）
+head -n 20 file     # 只看前 20 行
+grep -rn "error" /etc/nginx/       # 递归搜索文件内容（-r 目录 -n 行号）
+find / -name "*.conf" -type f      # 按名字+类型查找文件
+which nginx         # 命令在哪个路径
+locate nginx.conf   # 按数据库快速查找（先 updatedb）</div>
+          <p>高频组合：<span class="kw">tail -f 日志 | grep 关键词</span>——边滚边过滤，定位报错最快。</p>`},
+        { id:17, title:'用户与权限', tags:['入门'],
+          content:`<div class="code-block">whoami              # 我是谁
+useradd -m -s /bin/bash bob   # 建用户：-m 创建家目录，-s 指定 shell
+passwd bob          # 设置/修改密码
+su - bob            # 切换用户（- 连家目录和环境一起切）
+sudo ls /root       # 提权执行（免密配置见 /etc/sudoers.d/）
+id bob              # 查看用户 UID/GID/所属组
+chmod 750 file      # 权限：rwxr-x---（属主/属组/其他）
+chown user:group file
+chmod 600 key.pem   # 私钥文件必须 600，否则 SSH 拒绝使用</div>
+          <p class="kbox"><b>实战记录：</b>三台 K8s 节点都做了两件事——公钥写入 <span class="kw">authorized_keys</span>（600）+ <span class="kw">/etc/sudoers.d/</span> 配置免密 sudo，从此运维一条命令都不输密码。面试讲"我如何管理多台服务器"就能带出。</p>`},
+        { id:18, title:'压缩与下载', tags:['入门'],
+          content:`<div class="code-block">tar -czf app.tar.gz /opt/app   # 打包+压缩（c 创建 z gzip f 指定文件名）
+tar -xzf app.tar.gz -C /opt     # 解压到指定目录
+unzip app.zip
+curl -O https://x.com/file.tar.gz  # 下载并保存为原文件名
+curl -I https://x.com            # 只看响应头（探测连通性/HTTP 状态）
+curl -s -X POST -d '{"a":1}' http://api.local/test  # API 调试
+wget -c URL                      # 断点续传下载
+scp file user@host:/path         # 跨机器拷贝
+rsync -av /src/ user@host:/dst/  # 增量同步（重传只传差异，运维最爱）</div>
+          <p>curl 是云原生时代的瑞士军刀：探活、测 API、看状态码，K8s 里 curl Service IP 测通不通全靠它。</p>`}
+      ]},
+      { title:'文本三剑客', points:[
+        { id:19, title:'grep —— 按行过滤', tags:['必备','面试'],
+          content:`<div class="code-block">grep "error" app.log              # 匹配包含 error 的行
+grep -i "error" app.log           # 忽略大小写
+grep -v "DEBUG" app.log           # 反选：排除 DEBUG 行
+grep -E "error|warn" app.log      # 多关键词（扩展正则）
+grep -c "error" app.log           # 只数匹配了几行
+grep -n "timeout" app.log         # 带行号输出
+# 经典组合
+tail -f app.log | grep "500"      # 实时过滤出 500 错误
+ps aux | grep nginx               # 找进程
+kubectl get pods -A | grep CrashLoop  # K8s 排障</div>
+          <p>面试点：grep 是"找行"，配合 <b>|</b> 管道把上一个命令输出喂给下一个——运维一切排查都建立在管道思维上。</p>`},
+        { id:20, title:'sed —— 按行替换', tags:['必备'],
+          content:`<div class="code-block">sed -n '10,20p' file              # 只打印 10-20 行
+sed 's/old/new/g' file            # 替换并预览（不写回）
+sed -i 's/old/new/g' file         # -i 直接写回文件（改配置必用）
+sed -i '/^#/d' nginx.conf         # 删除所有注释行
+sed 's/8080/80/' nginx.conf       # 端口替换示例
+# 批量改配置实战：把 3 台节点的镜像源统一替换
+sed -i 's|https://mirrors.aliyun.com|https://mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list</div>
+          <p>面试点：<span class="kw">-i</span> 写回、<span class="kw">s/旧/新/g</span> 替换、<span class="kw">d</span> 删除、<span class="kw">p</span> 打印。改文件前先不带 -i 预览一遍，是运维好习惯。</p>`},
+        { id:21, title:'awk —— 按列处理', tags:['必备','面试'],
+          content:`<div class="code-block">awk '{print $1}' access.log         # 取第 1 列（默认按空格分隔）
+awk '{print $1,$NF}' file         # NF = 最后一列的编号
+awk -F: '{print $1}' /etc/passwd  # -F 指定分隔符（这里是冒号）
+awk '$3>100 {print $1}' file      # 第 3 列大于 100 才输出
+# 高频场景：统计日志里各状态码出现次数
+awk '{c[$9]++} END{for(k in c) print k, c[k]}' access.log
+# 输出示例：200 1523 / 404 87 / 500 12
+# 取出当前内存使用
+free -m | awk 'NR==2{print $3"/"$2"MB"}'</div>
+          <p>面试点：awk 是"处理列"，<span class="kw">-F</span> 定分隔符、<span class="kw">$NF</span> 最后一列、<span class="kw">END</span> 收尾统计。三剑客排序：<b>grep 找行 → sed 改行 → awk 取列</b>，一套组合拳覆盖 80% 日志分析。</p>`}
+      ]},
+      { title:'Linux 核心运维', points:[
+        { id:1, title:'systemd 服务管理', tags:['核心'],
+          content:`<p>现代 Linux 的服务管理统一走 <b>systemd</b>，一切服务都是 unit。</p>
+          <div class="code-block">systemctl status nginx        # 查看服务状态（含最近日志）
+systemctl start/stop/restart nginx
+systemctl enable --now nginx     # 开机自启 + 立即启动
+systemctl daemon-reload          # 修改 unit 文件后重载
+journalctl -u nginx -f           # 跟随服务日志
+systemctl list-units --failed    # 找出所有失败的服务</div>
+          <p>排查顺序：先 <span class="kw">status</span> 看状态 → <span class="kw">journalctl</span> 看日志 → 修配置 → <span class="kw">daemon-reload</span> → restart。</p>`},
+        { id:2, title:'文件与权限', tags:['核心'],
+          content:`<p>权限三件套：属主（u）/属组（g）/其他（o），rwx 三位一组。</p>
+          <div class="code-block">chmod 750 file     # rwxr-x---（所有者rwx、组rx、其他无）
+chown user:group file
+chmod 600 ~/.ssh/authorized_keys   # 私钥/授权文件必须 600</div>
+          <p><b>SUID/SGID/sticky</b> 是面试点：<span class="kw">/tmp</span> 的 sticky 位（1777）保证只有属主能删自己的文件；<span class="kw">/usr/bin/passwd</span> 的 SUID 让普通用户能以 root 身份改密码。</p>`},
+        { id:3, title:'性能排查三板斧', tags:['核心','面试'],
+          content:`<table class="tbl"><colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+          <tr><th>工具</th><th>看什么</th></tr>
+          <tr><td>top / htop</td><td>CPU 使用率、load average、内存、进程；<b>load 超过核数×1 说明排队</b></td></tr>
+          <tr><td>free -h</td><td>内存总量/已用/可用；关注 <b>available</b>（真正可分配），不是 free</td></tr>
+          <tr><td>iostat / df</td><td>磁盘 IO 与容量；iowait 高说明磁盘是瓶颈</td></tr>
+          <tr><td>vmstat 1</td><td>每秒快照：r（运行队列）、si/so（换页）、wa（IO等待）</td></tr>
+          <tr><td>ss / netstat</td><td>端口监听、连接状态（TIME_WAIT/ESTABLISHED）</td></tr></table>
+          <p>套路：先 <span class="kw">top</span> 看全局 → 锁定高占用进程 → <span class="kw">ps -fp PID</span> 看详情 → 针对性看日志。</p>`},
+        { id:4, title:'磁盘与文件系统', tags:['实战'],
+          content:`<p>虚拟化环境磁盘"白扩"是高频场景：宿主机扩容后，VM 内分区和文件系统没有跟着扩。</p>
+          <div class="code-block">lsblk                          # 看磁盘与分区大小（对比期望值）
+growpart /dev/vda 2              # 在线扩展分区（root 用户）
+resize2fs /dev/vda2              # 扩展 ext4 文件系统（xfs 用 xfs_growfs）
+df -h /                          # 验证</div>
+          <p class="kbox"><b>实战记录：</b>三台节点 PVE 磁盘扩到 150G 后，VM 内仍是原容量——用 <span class="kw">growpart + resize2fs</span> 在线无损扩到 147G，全程无需重启。</p>`},
+        { id:5, title:'内核参数与模块', tags:['实战'],
+          content:`<p>K8s 依赖的内核设置必须持久化，否则重启即失效。</p>
+          <div class="code-block"># /etc/modules-load.d/k8s.conf —— 开机加载模块
+overlay
+br_netfilter
+
+# /etc/sysctl.d/k8s.conf —— 网络转发参数
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+
+sysctl --system    # 立即生效</div>
+          <p class="kbox"><b>实战记录：</b>node 节点重启后 flannel CrashLoopBackOff（重启 2531 次）——根因 <span class="kw">br_netfilter</span> 未持久化，写入 modules-load.d 后修复。</p>`}
+      ]},
+      { title:'网络基础', points:[
+        { id:6, title:'TCP 三次握手与四次挥手', tags:['核心','面试'],
+          content:`<p><b>三次握手</b>（建立连接）：</p>
+          <div class="code-block">1. 客户端 → 服务端：SYN（seq=x）
+2. 服务端 → 客户端：SYN+ACK（seq=y, ack=x+1）
+3. 客户端 → 服务端：ACK（ack=y+1）     # 连接建立</div>
+          <p><b>四次挥手</b>（关闭连接）：</p>
+          <div class="code-block">1. A → B：FIN         2. B → A：ACK
+3. B → A：FIN         4. A → B：ACK      # 连接关闭</div>
+          <p class="kbox"><b>面试常考：</b>为什么挥手要四次？——被动方收到 FIN 后可能还有数据要发，ACK 和 FIN 不能合并。为什么 TIME_WAIT 要等 2MSL？——确保最后的 ACK 能到达，防止旧连接数据串扰。</p>`},
+        { id:7, title:'HTTP / HTTPS', tags:['核心'],
+          content:`<p>面试高发区：状态码必须脱口而出。</p>
+          <table class="tbl"><colgroup><col style="width:18%"><col style="width:82%"></colgroup>
+          <tr><th>状态码</th><th>含义与排障指向</th></tr>
+          <tr><td>200 / 301 / 302</td><td>成功 / 永久重定向 / 临时重定向</td></tr>
+          <tr><td>401 / 403</td><td>未认证 / 无权限（先查认证与 ACL，不是服务挂了）</td></tr>
+          <tr><td>404 / 405</td><td>资源不存在 / 方法不允许（查路由与 Nginx 配置）</td></tr>
+          <tr><td>499 / 502 / 504</td><td>客户端断开 / 上游不可达 / 上游超时（Nginx 场景查后端健康）</td></tr>
+          <tr><td>500 / 503</td><td>服务端异常 / 过载不可用</td></tr></table>
+          <p>HTTPS 核心：<b>SSL/TLS 握手</b>（协商加密套件 + 证书验证 + 密钥交换），非对称加密传密钥、对称加密传数据。证书链：CA 根证书 → 中间证书 → 站点证书，任一环断裂浏览器就报错。</p>`},
+        { id:8, title:'DNS 解析与排障', tags:['重要','面试'],
+          content:`<p>DNS 是 K8s 与互联网排障的<b>头号嫌疑犯</b>，解析顺序和记录类型都要熟。</p>
+          <div class="code-block"># 记录类型
+A / AAAA       域名 → IPv4 / IPv6
+CNAME          别名指向
+MX             邮件服务器
+NS             域名服务器
+TXT            文本记录（SPF、验证用）
+
+# 排障命令
+dig example.com                  # 权威查询（最可靠）
+nslookup example.com             # 简单查询
+getent hosts example.com         # 用系统解析器（含 /etc/hosts）
+cat /etc/resolv.conf             # 看 nameserver（K8s 里是 CoreDNS）</div>
+          <p>排查套路：<span class="kw">先确认是系统解析还是网络解析</span>——本机 hosts 里有记录但 dig 查不到？那是 hosts 优先。K8s 里 Pod 解析失败：查 CoreDNS 是否 Running、<span class="kw">resolv.conf</span> 的 nameserver 是否指向 CoreDNS、search 域是否配置。</p>`},
+        { id:9, title:'DHCP 与 IP 管理', tags:[],
+          content:`<p>DHCP 四步：<b>Discover → Offer → Request → ACK</b>。租约（lease）到期前客户端会续租（T1/T2 两个时间点）。</p>
+          <p>排查：<span class="kw">dhclient -r</span> 释放、<span class="kw">dhclient</span> 重新获取；租约文件在 /var/lib/dhcp/。虚拟化环境注意 DHCP 与静态 IP 冲突（ARP 冲突报错）。</p>`}
+      ]},
+      { title:'安全与负载设备', points:[
+        { id:10, title:'防火墙与五元组', tags:['重要'],
+          content:`<p>防火墙基于<b>五元组</b>做访问控制：<b>源 IP、源端口、目的 IP、目的端口、协议</b>。</p>
+          <div class="code-block"># Linux 自带 nftables/iptables
+iptables -A INPUT -p tcp --dport 22 -s 192.168.1.0/24 -j ACCEPT
+nft add rule inet filter input tcp dport 80 accept
+
+# 云上安全组 = 云化的防火墙（阿里云/腾讯云同理，默认拒绝入站）</div>
+          <p>方向很重要：<b>入站（INPUT）</b>拦外部访问，<b>出站（OUTPUT）</b>拦外联。K8s 的 kube-proxy 底层就是 iptables/ipvs 规则。</p>`},
+        { id:11, title:'WAF 与 Web 攻击', tags:['重要'],
+          content:`<p>WAF 专门防护 Web 应用层攻击：</p>
+          <table class="tbl"><colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+          <tr><th>攻击</th><th>说明</th></tr>
+          <tr><td>SQL 注入</td><td>把 SQL 拼进参数，用参数化查询防御</td></tr>
+          <tr><td>XSS</td><td>脚本注入到页面，对输出做转义</td></tr>
+          <tr><td>CSRF</td><td>伪造用户请求，加 token 校验</td></tr>
+          <tr><td>CC / DDoS</td><td>流量/连接耗尽，靠限流、WAF、高防</td></tr></table>
+          <p>区分：WAF 防<b>应用层</b>攻击（七层），DDoS 防护防<b>流量层</b>（四层+）。</p>`},
+        { id:12, title:'四层 vs 七层负载均衡', tags:['核心','面试'],
+          content:`<table class="tbl"><colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+          <tr><th></th><th>四层 L4</th><th>七层 L7</th></tr>
+          <tr><td>依据</td><td>IP + 端口</td><td>URL / 域名 / Header</td></tr>
+          <tr><td>代表</td><td>LVS、SLB（TCP/UDP 模式）</td><td>Nginx、HAProxy、Ingress</td></tr>
+          <tr><td>性能</td><td>高（不解析报文内容）</td><td>较低（需解析 HTTP）</td></tr>
+          <tr><td>能力</td><td>透传、速度快</td><td>路由分流、HTTPS 卸载、缓存</td></tr></table>
+          <p>K8s 里：<b>Service NodePort/LoadBalancer</b> 本质是四层（IPVS/iptables），<b>Ingress</b> 是七层（Nginx controller）。</p>`}
+      ]},
+      { title:'排障方法论', points:[
+        { id:13, title:'七层排查法', tags:['核心','面试'],
+          content:`<p>网络问题从底往上，一层一层排除，<b>不要跳层</b>：</p>
+          <div class="code-block">① 物理层   网线/网卡/链路    ip link show
+② 链路层   MAC/ARP           ip neigh
+③ 网络层   连通性/路由        ping / traceroute
+④ 传输层   端口/连接          ss -tlnp / telnet ip port
+⑤ 会话层   会话建立          netstat -s
+⑥ 表示层   协议/证书          curl -v（看 TLS 握手）
+⑦ 应用层   应用逻辑/数据       curl / 日志</div>
+          <p>经典示例：<span class="kw">ping 通但 curl 不通</span> → 跳过①②③，直接查 ④⑤⑥⑦（端口未监听？防火墙？TLS 证书？）。K8s 里 Service 不通同理：先 pod IP 直连（跳过 Service 层）定位是后端挂了还是代理规则问题。</p>`},
+        { id:14, title:'排障工具箱', tags:['核心'],
+          content:`<table class="tbl"><colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+          <tr><th>工具</th><th>场景</th></tr>
+          <tr><td>ping</td><td>连通性 + RTT（首测）</td></tr>
+          <tr><td>ss -tlnp</td><td>端口监听与服务绑定</td></tr>
+          <tr><td>curl -v</td><td>HTTP 全链路（DNS→TCP→TLS→响应头）</td></tr>
+          <tr><td>tcpdump -i eth0 host x</td><td>抓包看真实报文（定位丢包/重传）</td></tr>
+          <tr><td>dig / nslookup</td><td>DNS 解析排查</td></tr>
+          <tr><td>mtr / traceroute</td><td>路径探测，定位哪一跳丢包</td></tr></table>
+          <p>原则：<b>先观察现象（什么不通），再二分定位（从上还是从下），最后看证据（抓包/日志）</b>。</p>`}
+      ]}
+    ]
+  },
+
+  {
+    id:2, title:'容器与镜像', icon:'ctr', subtitle:'镜像分层、容器运行时、加速配置实战',
+    sections:[
+      { title:'容器原理', points:[
+        { id:1, title:'容器是什么', tags:['核心'],
+          content:`<p>容器 = <b>进程隔离 + 资源限制</b>，不是虚拟机。</p>
+          <table class="tbl"><colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+          <tr><th>技术</th><th>作用</th></tr>
+          <tr><td>Namespace</td><td>隔离视图：PID、网络、挂载、UTS、IPC、用户</td></tr>
+          <tr><td>Cgroups</td><td>限制资源：CPU、内存、IO、网络带宽</td></tr>
+          <tr><td>UnionFS（overlayfs）</td><td>镜像分层：只读层 + 可写层合并成容器视图</td></tr></table>
+          <p>容器共享宿主机内核，所以<b>不能跑与宿主机内核版本冲突的程序</b>；这是容器 vs 虚拟机最大的区别（面试必答）。</p>`},
+        { id:2, title:'containerd 与 Docker 的关系', tags:['核心','实战'],
+          content:`<p>K8s 1.24+ 移除了 dockershim，运行时直接用 <b>containerd</b>（Docker 底层的容器运行时）。</p>
+          <div class="code-block"># 容器运行时命令（日常排查用）
+ctr -n k8s.io images list        # 列出 K8s 使用的镜像
+crictl images                    # K8s 视角的镜像列表（推荐）
+crictl ps -a                     # 容器状态
+crictl logs <container-id>       # 容器日志（等同 kubectl logs）</div>
+          <p class="kbox"><b>实战记录：</b>集群三台均为 containerd 2.2.1。镜像拉取失败优先查 <span class="kw">/etc/containerd/certs.d/</span> 加速配置，而非 Docker daemon 配置——K8s 不看 Docker。</p>`}
+      ]},
+      { title:'镜像与加速', points:[
+        { id:3, title:'镜像分层原理', tags:['核心'],
+          content:`<p>镜像由一层层只读层叠加：基础层（OS）→ 依赖层 → 应用层。每层都有 hash，<b>相同层可复用</b>。</p>
+          <div class="code-block">docker history nginx:1.27-alpine   # 查看分层历史
+docker image inspect nginx:1.27-alpine | grep -A3 RootFS   # 看层 hash
+# 拉取策略：本地已有相同层 → 直接复用，只拉新层（省流量）</div>
+          <p>影响：<b>基础镜像选 alpine（几 MB）而非 debian（上百 MB）</b>，能显著加快拉取与启动。</p>`},
+        { id:4, title:'镜像加速配置（国内实战）', tags:['实战','高危'],
+          content:`<p>国内直连 Docker Hub / registry.k8s.io 超时是<b>常态</b>，必须走加速镜像。containerd 用 <span class="kw">hosts.toml</span> 按仓库配置镜像源：</p>
+          <div class="code-block"># /etc/containerd/certs.d/docker.io/hosts.toml
+server = "https://docker.io"
+
+[host."https://docker.m.daocloud.io"]
+  capabilities = ["pull", "resolve"]
+
+# /etc/containerd/certs.d/registry.k8s.io/hosts.toml
+server = "https://registry.k8s.io"
+[host."https://k8s.m.daocloud.io"]
+  capabilities = ["pull", "resolve"]
+
+systemctl restart containerd</div>
+          <p class="kbox"><b>实战记录：</b>三台节点配置 daocloud 加速后，ImagePullBackOff 全部恢复；ingress-nginx 镜像带 <span class="kw">@sha256:</span> digest 锁定会拉取失败，去掉 digest 纯 tag 后成功。面试能讲"为什么 digest 锁定在国内会失败"很加分。</p>`}
+      ]},
+      { title:'Docker 日常操作', points:[
+        { id:5, title:'常用命令', tags:['核心'],
+          content:`<div class="code-block">docker ps -a                 # 所有容器（-a 含已退出）
+docker images                 # 本地镜像
+docker logs -f <name>         # 跟随日志
+docker exec -it <name> sh     # 进入容器
+docker build -t myapp:v1 .    # 构建镜像
+docker tag myapp:v1 reg/myapp:v1 && docker push reg/myapp:v1
+docker rmi $(docker images -q -f dangling=true)   # 清理悬空镜像
+docker system prune -a        # 全量清理（慎用，会删镜像）</div>
+          <p>镜像清理在磁盘紧张时是救命操作——三节点磁盘吃紧时先查 <span class="kw">crictl rmi --prune</span> 或清理悬空层。</p>`},
+        { id:6, title:'Dockerfile 规范', tags:['重要'],
+          content:`<div class="code-block">FROM node:20-alpine AS build        # 多阶段构建：减少体积
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev                # 利用层缓存：依赖先拷
+COPY . .
+RUN npm run build
+
+FROM nginx:1.27-alpine
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80</div>
+          <p>要点：<b>易变内容放后面</b>（缓存命中）、多阶段构建瘦身、<b>不用 root 用户跑应用</b>（USER 指令）、固定 tag 不用 latest（可复现）。</p>`}
+      ]}
+    ]
+  },
+
+  {
+    id:3, title:'K8s 集群实战全记录', icon:'lab', subtitle:'从零部署到资源治理——你亲手跑通的完整链路，面试故事库',
+    sections:[
+      { title:'集群搭建', points:[
+        { id:1, title:'三节点拓扑与前置条件', tags:['实战','核心'],
+          content:`<table class="tbl"><colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+          <tr><th>节点</th><th>角色 / IP</th></tr>
+          <tr><td>k8s-master</td><td>control-plane · 192.168.199.207</td></tr>
+          <tr><td>k8s-node1</td><td>worker · 192.168.199.217</td></tr>
+          <tr><td>k8s-node2</td><td>worker · 192.168.199.227</td></tr></table>
+          <div class="code-block"># 每台节点都要做的四件套
+swapoff -a && sed -i '/swap/s/^/#/' /etc/fstab   # ① 关 swap（kubelet 硬性要求）
+cat << 'EOF' > /etc/modules-load.d/k8s.conf      # ② 内核模块（重启不丢）
+overlay
+br_netfilter
+EOF
+cat << 'EOF' > /etc/sysctl.d/k8s.conf            # ③ 网络转发
+net.bridge.bridge-nf-call-iptables=1
+net.ipv4.ip_forward=1
+EOF
+sysctl --system                                   # ④ 立即生效
+# ⑤ containerd 装好 + cgroup driver 配成 systemd + 镜像加速（见模块 2）</div>
+          <p>面试点：kubeadm 建集群前的前置检查，本身就是私有化交付的第一道关卡——你把这些讲给面试官，就是"做过私有化"的证明。</p>`},
+        { id:2, title:'kubeadm init 与 join', tags:['实战','核心'],
+          content:`<div class="code-block"># master 初始化
+kubeadm init --apiserver-advertise-address=192.168.199.207 \\
+  --pod-network-cidr=10.244.0.0/16
+
+# 普通用户使用 kubectl
+mkdir -p $HOME/.kube && cp /etc/kubernetes/admin.conf $HOME/.kube/config
+
+# worker 加入（init 成功会打印 join 命令）
+kubeadm join 192.168.199.207:6443 --token xxx --discovery-token-ca-cert-hash sha256:xxx
+
+# 验证
+kubectl get nodes          # 全部 Ready 之前会显示 NotReady（缺 CNI）
+kubectl get pods -n kube-system   # coredns Pending = 缺 CNI</div>
+          <p>关键记忆：<b>kubectl get nodes 显示 NotReady 不是节点坏了</b>，是 CNI 网络插件没装（最常见新手卡点）。</p>`},
+        { id:3, title:'CNI 网络：flannel', tags:['实战'],
+          content:`<div class="code-block">kubectl apply -f https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+# 装完后观察
+kubectl get pods -n kube-system    # coredns 由 Pending → Running
+kubectl get nodes                  # NotReady → Ready
+kubectl get pods -A -o wide        # 每个 Pod 拿到 10.244.x.x 网段 IP</div>
+          <p>flannel 是 Overlay 网络：给每个 Pod 分配 10.244 网段 IP，节点间封装转发。生产一般换 <b>Calico</b>（支持 NetworkPolicy），详见模块 5。</p>`}
+      ]},
+      { title:'集群维护（真实故障）', points:[
+        { id:4, title:'三节点全宕 → 重启自愈', tags:['实战','面试','亮点'],
+          content:`<p class="kbox"><b>真实案例（可写进简历）：</b>某次三台 K8s 节点全部宕机（宿主机断电），重启后：</p>
+          <div class="code-block">kubectl get nodes
+# 三台全部 Ready，control-plane 正常
+kubectl get pods -A
+# demo / team-a 应用全部恢复 Running，数据无丢失
+
+# 复盘
+· etcd 是集群"大脑"，数据在本地盘 → 重启后自动恢复
+· containerd 里的容器由 kubelet 重新拉起
+· 教训：PVE 宿主机层面要配置开机自启 + UPS</div>
+          <p>面试讲法："我经历过三节点全宕的自愈，验证了 K8s 声明式自愈能力，也学会了宿主机层面的可靠性配置。"——这种真实事故是技术面最稀缺的素材。</p>`},
+        { id:5, title:'磁盘在线扩容（growpart + resize2fs）', tags:['实战','亮点'],
+          content:`<div class="code-block"># PVE 虚拟机层面先扩大磁盘 → 进系统在线扩容（无需重启）
+growpart /dev/sda 3          # 扩展分区（/dev/sda 的第 3 个分区）
+resize2fs /dev/sda3          # 扩展文件系统到全部分区空间
+df -h                        # 立即可见新容量
+
+# 实战数据：master 从 50G 扩到 147G，85G 已用（61%）</div>
+          <p>面试点：<b>云磁盘/虚拟机磁盘扩容分两层</b>——云平台层（控制台扩盘）+ 系统层（分区+文件系统）。你亲手做过系统层，私有化/云上都通用。</p>`},
+        { id:6, title:'flannel 崩溃与内核模块持久化', tags:['实战','面试'],
+          content:`<p class="kbox"><b>真实故障：</b>节点重启后 flannel Pod 一直 <b>CrashLoopBackOff</b>，集群网络瘫痪。根因：<span class="kw">br_netfilter</span> 内核模块重启后没加载（只 modprobe 了一次，没写持久化配置）。</p>
+          <div class="code-block"># 排查路径
+kubectl get pods -n kube-system          # 看到 CrashLoopBackOff
+kubectl logs <flannel-pod> -n kube-system # 报 bridge 相关错误
+lsmod | grep br_netfilter                 # 确认模块没加载
+# 修复：写入 /etc/modules-load.d/k8s.conf（见模块内"三节点拓扑"）
+# 重启后再验证：systemctl restart kubelet / reboot 后网络仍正常</div>
+          <p>面试价值：这是一条教科书级的"重启后服务消失"案例——<b>临时配置 vs 持久化配置</b>的区别，讲出来就是"我真的踩过坑"。</p>`},
+        { id:7, title:'kubectl config 修复 DATA+OMITTED', tags:['实战'],
+          content:`<div class="code-block"># 现象：kubectl get pods 报错 or kubeconfig 里 client-certificate-data 显示
+# DATA+OMITTED（token/证书被工具脱敏），无法认证
+kubectl config view --raw     # 输出完整原始内容（含未脱敏的证书/token）
+kubectl config view --raw > ~/.kube/config   # 写回修复
+kubectl auth whoami           # 验证身份恢复</div>
+          <p>面试点：kubeconfig 三要素 = <b>server（地址）+ 凭证（证书/token）+ context（绑定）</b>。遇到 DATA+OMITTED 知道用 --raw 恢复，说明你理解 kubeconfig 结构而不是只会敲命令。</p>`}
+      ]},
+      { title:'应用发布（Week1）', points:[
+        { id:8, title:'Deployment 滚动更新', tags:['实战','核心'],
+          content:`<div class="code-block"># 升级镜像版本
+kubectl -n demo set image deployment/nginx-demo nginx=nginx:1.26-alpine
+
+# 实时观察滚动过程（重点！）
+kubectl -n demo rollout status deployment/nginx-demo
+# Waiting for deployment "nginx-demo" rollout to finish:
+# 1 out of 3 new replicas have been updated...   ← 先起 1 个新的
+# 2 out of 3 new replicas have been updated...
+# 1 old replicas are pending termination...      ← 旧的逐个下线
+# deployment "nginx-demo" successfully rolled out
+
+# 滚动更新 = 先建后杀，服务全程可用（maxSurge 控制节奏，见模块 4）</div>
+          <p>面试点：Deployment 滚动更新为什么服务不中断——<b>新老副本交替、readiness 通过才继续</b>。这是 K8s 相对传统部署的核心优势。</p>`},
+        { id:9, title:'回滚（rollout undo）', tags:['实战','面试'],
+          content:`<div class="code-block"># 版本升级出问题 → 秒回上一版
+kubectl -n demo rollout undo deployment/nginx-demo
+kubectl -n demo rollout status deployment/nginx-demo
+# deployment "nginx-demo" successfully rolled out
+
+# 查看历史版本
+kubectl -n demo rollout history deployment/nginx-demo
+# 回滚到指定版本
+kubectl -n demo rollout undo deployment/nginx-demo --to-revision=1</div>
+          <p>面试点：<b>回滚是生产救命技能</b>——发布出问题 30 秒内回到上一个可用版本，比"立刻修代码重新发布"快得多。K8s 的 Deployment 天然带版本历史和回滚能力。</p>`},
+        { id:10, title:'Service 三种访问方式实测', tags:['实战','核心'],
+          content:`<div class="code-block"># ① ClusterIP（集群内访问）
+kubectl -n demo get svc                 # 拿到 CLUSTER-IP: 10.103.216.74
+curl 10.103.216.74                      # 集群内任意节点/Pod 可访问
+
+# ② Endpoints（看后端）
+kubectl -n demo get endpoints
+# nginx-demo-svc  10.244.0.49:80,10.244.1.11:80,10.244.3.12:80
+# = Service 背后挂的 3 个 Pod，流量随机转发
+
+# ③ NodePort（集群外访问）
+kubectl -n demo patch svc nginx-demo-svc -p '{"spec":{"type":"NodePort"}}'
+kubectl -n demo get svc
+# 80:30645/TCP  → 浏览器访问 任意节点IP:30645 即可打开</div>
+          <p>三种类型一层层开放：ClusterIP（内部）→ NodePort（节点端口对外）→ LoadBalancer/Ingress（云上/七层）。你全亲手测过，面试直接画出来。</p>`}
+      ]},
+      { title:'资源治理（Week2）', points:[
+        { id:11, title:'ResourceQuota 实战：配额顶满', tags:['实战','面试'],
+          content:`<div class="code-block"># 扩到 8 副本（配额只允许 6 个 Pod）
+kubectl -n team-a scale deployment app-a --replicas=8
+kubectl get pods -n team-a        # 只有 6 个起来了
+kubectl get events -n team-a | grep -i forbidden
+# Warning FailedCreate: pods "app-a-xxx" is forbidden:
+# exceeded quota: team-a-quota, requested: limits.cpu=300m,pods=1,
+# used: limits.cpu=1800m,pods=6, limited: limits.cpu=2,pods=6
+kubectl get resourcequota -n team-a   # pods 6/6 顶满</div>
+          <p class="kbox"><b>面试讲法：</b>"我用 ResourceQuota 给团队命名空间设了 Pod/CPU/内存上限，验证了超额 Pod 在<b>创建阶段</b>就被 API 拒绝（forbidden），而不是调度时才失败。"——配额是创建时记账（见模块 4）。</p>`},
+        { id:12, title:'LimitRange 实战：限额拦截', tags:['实战'],
+          content:`<div class="code-block"># 创建一个超限额的 Deployment
+kubectl -n team-a create deployment app-bad --image=nginx:1.27-alpine --replicas=1
+kubectl -n team-a set resources deployment app-bad \
+  --limits=cpu=2,memory=2Gi --requests=cpu=500m,memory=512Mi
+
+# 结果：Pod 一个都起不来
+kubectl get deployment -n team-a app-bad   # READY 0/1
+kubectl describe rs -n team-a app-bad | tail -3
+# Warning FailedCreate: maximum memory usage per Container is 1Gi,
+# but limit is 2Gi, maximum cpu usage per Container is 1, but limit is 2
+
+# 对比：之前被 Quota 拒（used 6/6），缩回 3 副本后 → 被 LimitRange 拒（超 max）
+# 两层防线：Quota = 总量记账，LimitRange = 单容器限额（准入校验）</div>
+          <p>面试点：同一份 yaml，换了个错误就能说出"Quota 拒和 LimitRange 拒的报错长什么样"——这是真做过资源治理的证明。</p>`},
+        { id:13, title:'RBAC 受限 kubeconfig 验证', tags:['实战','面试'],
+          content:`<div class="code-block"># 三件套：ServiceAccount + Role + RoleBinding
+kubectl apply -f ~/k8s-lab/week2/rbac-sa.yaml
+# 生成受限 kubeconfig（只有 team-a 命名空间 pods 的读权限）
+bash ~/k8s-lab/week2/build-deployer-kubeconfig.sh
+
+# 三条验证命令 = 完美演示授权边界
+kubectl --kubeconfig team-a-deployer.kubeconfig get pods
+# ✅ 成功（授权内：team-a 的 pods，get/list/watch）
+kubectl --kubeconfig team-a-deployer.kubeconfig get svc
+# ❌ Forbidden: services is forbidden ... cannot list resource "services"
+kubectl --kubeconfig team-a-deployer.kubeconfig get pods -n demo
+# ❌ Forbidden: ... cannot list resource "pods" ... namespace "demo"</div>
+          <p class="kbox"><b>面试讲法：</b>"我做了最小权限实践——给交付/排查账号只发 pods 读权限，验证跨资源（svc）、跨命名空间（demo）都被 Forbidden 拦截。"RBAC 概念见模块 6，这里是你亲手验证过的证据。</p>`}
+      ]}
+    ]
+  },
+
+  {
+    id:4, title:'Kubernetes 核心', icon:'k8s', subtitle:'对象模型、资源管理、调度、发布与排障',
+    sections:[
+      { title:'核心对象', points:[
+        { id:1, title:'Pod —— 最小调度单元', tags:['核心'],
+          content:`<p>Pod 是一个或多个<b>共享网络命名空间与存储</b>的容器集合，是 K8s 的调度单位。</p>
+          <div class="code-block">kubectl get pods -A -o wide        # 全量 Pod + 所在节点
+kubectl describe pod <name>        # 详情 + Events（排障第一命令）
+kubectl logs -f <name> --tail=100  # 日志
+kubectl exec -it <name> -- sh      # 进入容器
+kubectl delete pod <name>          # 删掉后 Deployment 会自动重建（自愈）</div>
+          <p><b>自愈</b>：Pod 挂了没关系，Deployment 的 ReplicaSet 会按声明数重建——这是 K8s 与手动 Docker 的核心区别。</p>`},
+        { id:2, title:'Deployment / ReplicaSet / StatefulSet', tags:['核心'],
+          content:`<table class="tbl"><colgroup><col style="width:20%"><col style="width:80%"></colgroup>
+          <tr><th>对象</th><th>定位</th></tr>
+          <tr><td>Deployment</td><td><b>无状态应用</b>：滚动更新、回滚、扩缩容（nginx、API 服务）</td></tr>
+          <tr><td>ReplicaSet</td><td>保证 N 个副本，Deployment 内部管理它（一般不直接操作）</td></tr>
+          <tr><td>StatefulSet</td><td><b>有状态应用</b>：稳定网络标识、稳定存储、顺序启停（MySQL、etcd）</td></tr>
+          <tr><td>DaemonSet</td><td>每个节点跑一个（flannel、node-exporter、CSI 驱动）</td></tr></table>
+          <p>控制器模式（Controller Pattern）是 K8s 的灵魂：<b>声明期望状态 → 控制器持续调谐（Reconcile）到期望状态</b>，面试必讲。</p>`},
+        { id:3, title:'Service / Ingress / ConfigMap / Secret', tags:['核心'],
+          content:`<table class="tbl"><colgroup><col style="width:20%"><col style="width:80%"></colgroup>
+          <tr><th>对象</th><th>作用</th></tr>
+          <tr><td>Service</td><td>Pod 的稳定访问入口 + 负载均衡（ClusterIP/NodePort/LoadBalancer）</td></tr>
+          <tr><td>Ingress</td><td>七层路由：按域名/路径转发到 Service，支持 HTTPS（Nginx controller）</td></tr>
+          <tr><td>ConfigMap</td><td>非敏感配置（环境变量、配置文件），<b>不加密</b></td></tr>
+          <tr><td>Secret</td><td>敏感信息（密码、证书），base64 编码存储（<b>不是加密</b>，etcd 需加密配置）</td></tr></table>
+          <p>ConfigMap 热更新坑：<b>环境变量方式不热更新</b>（Pod 创建时注入），文件挂载方式通过 symlink 原子切换——但 <span class="kw">subPath 挂载不热更新</span>，需要 <span class="kw">kubectl rollout restart</span> 生效（实战踩过）。</p>`},
+        { id:4, title:'Namespace 与隔离', tags:['重要'],
+          content:`<p>Namespace 是<b>资源隔离的边界</b>：配额、限额、RBAC 都挂在它上面。</p>
+          <div class="code-block">kubectl create ns team-a
+kubectl get ns
+kubectl config set-context --current --namespace=team-a   # 切换默认命名空间</div>
+          <p>注意：Namespace 隔离的是"管理面"（配额/权限），<b>不隔离网络</b>——不同 Namespace 的 Pod 默认能互通，网络隔离要靠 NetworkPolicy（模块 4）。</p>`}
+      ]},
+      { title:'资源管理', points:[
+        { id:5, title:'requests 与 limits', tags:['核心','面试'],
+          content:`<p><b>requests（请求量）</b>：调度依据，保证这个量可用；<b>limits（上限）</b>：运行时不能超过，超过 CPU 会被限流、超过内存会被 OOMKill。</p>
+          <div class="code-block">resources:
+  requests: { cpu: 100m, memory: 128Mi }   # 调度器按这个选节点
+  limits:   { cpu: 300m, memory: 256Mi }   # 运行时硬上限</div>
+          <p class="kbox"><b>面试点：</b>CPU 是可压缩资源（超限被限流，进程卡但活着）；内存不可压缩（超限直接被 kill）。<span class="kw">100m = 0.1 核</span>，Mi 是 1024² 字节，M 是 1000²。</p>`},
+        { id:6, title:'ResourceQuota —— 命名空间预算', tags:['实战','面试'],
+          content:`<p>限制<b>整个 Namespace</b> 的资源总量，超了拒绝创建。</p>
+          <div class="code-block">apiVersion: v1
+kind: ResourceQuota
+metadata: { name: team-a-quota, namespace: team-a }
+spec:
+  hard:
+    requests.cpu: "1"      # 所有 Pod 的 CPU 请求 ≤ 1 核
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 2Gi
+    pods: "6"              # Pod 总数 ≤ 6</div>
+          <p class="kbox"><b>实战记录：</b>扩到 8 副本时第 7 个 Pod 报 <span class="kw">forbidden: exceeded quota</span>（pods 6/6, limits.cpu 1800m/2）——配额是"创建时记账"，第 7 个请求直接被拒绝，不是排队。</p>`},
+        { id:7, title:'LimitRange —— 单容器规格', tags:['实战','面试'],
+          content:`<p>约束<b>单个容器</b>：没写资源就自动补默认值，超上限直接拒绝。</p>
+          <div class="code-block">apiVersion: v1
+kind: LimitRange
+metadata: { name: team-a-limitrange, namespace: team-a }
+spec:
+  limits:
+    - type: Container
+      default:        { cpu: 300m, memory: 256Mi }   # 没写 limits 时补
+      defaultRequest: { cpu: 100m, memory: 128Mi }   # 没写 requests 时补
+      max:            { cpu: "1", memory: 1Gi }
+      min:            { cpu: 50m, memory: 64Mi }</div>
+          <p class="kbox"><b>实战记录：</b>配额满时先被 Quota 拦（记账型）；配额释放后 LimitRange 接管（准入型）报 <span class="kw">maximum memory usage per Container is 1Gi, but limit is 2Gi</span>。两层防线叠加、按触发先后报错。</p>`}
+      ]},
+      { title:'调度与节点维护', points:[
+        { id:8, title:'污点与容忍', tags:['重要','面试'],
+          content:`<p><b>Taint（污点）</b>：给节点打标记，普通 Pod 不会调度上去；<b>Toleration（容忍）</b>：Pod 声明"我能接受这个污点"。</p>
+          <div class="code-block">kubectl taint nodes node1 key=value:NoSchedule
+kubectl taint nodes node1 key=value:NoSchedule-    # 去掉（结尾减号）
+# Pod 容忍示例
+tolerations:
+- key: "key"  operator: "Equal"  value: "value"  effect: "NoSchedule"</div>
+          <p>control-plane 默认有污点 <span class="kw">node-role.kubernetes.io/control-plane:NoSchedule</span>，所以业务 Pod 不会跑到 Master（除非去掉污点，单节点学习场景常用）。</p>`},
+        { id:9, title:'cordon / drain / uncordon', tags:['重要'],
+          content:`<p>节点维护三部曲：</p>
+          <div class="code-block">kubectl cordon node1          # 标记不可调度（已有 Pod 不动）
+kubectl drain node1 --ignore-daemonsets --delete-emptydir-data   # 驱逐 Pod 到其他节点
+# ... 维护完成后 ...
+kubectl uncordon node1        # 恢复可调度</div>
+          <p>drain 是升级/重启节点前的标准操作，保证业务不中断。<b>面试场景题</b>："节点要重启了怎么办？"→ cordon → drain → 维护 → uncordon → 观察 Pod 回归。</p>`}
+      ]},
+      { title:'发布策略', points:[
+        { id:10, title:'滚动更新与回滚', tags:['实战','面试'],
+          content:`<p>Deployment 更新 = 新 ReplicaSet 逐渐替换旧 ReplicaSet，默认 <b>maxUnavailable 25% / maxSurge 25%</b>。</p>
+          <div class="code-block">kubectl -n demo set image deployment/nginx-demo nginx=nginx:1.26-alpine
+kubectl -n demo rollout status deployment/nginx-demo    # 观察：1/3 → 2/3 → pending termination
+kubectl -n demo rollout history deployment/nginx-demo   # 版本历史
+kubectl -n demo rollout undo deployment/nginx-demo      # 回滚到上一版
+kubectl -n demo rollout restart deployment/nginx-demo   # 不换镜像，重启（ConfigMap 热更新用）</div>
+          <p class="kbox"><b>实战记录：</b>1.27→1.26 升级观察"1 out of 3 → 2 out of 3 → old replicas pending termination"完整过程；rollout undo 回滚成功。面试能讲"为什么先起新的再杀旧的（Surge）"。</p>`},
+        { id:11, title:'探针（Probe）', tags:['核心','面试'],
+          content:`<table class="tbl"><colgroup><col style="width:20%"><col style="width:80%"></colgroup>
+          <tr><th>探针</th><th>作用</th></tr>
+          <tr><td>livenessProbe</td><td>存活：失败则 <b>重启容器</b>（容器卡死但进程在的场景）</td></tr>
+          <tr><td>readinessProbe</td><td>就绪：失败则 <b>从 Service 摘除</b>（不重启，流量不进来）</td></tr>
+          <tr><td>startupProbe</td><td>启动：给慢启动应用缓冲，避免被 liveness 误杀</td></tr></table>
+          <div class="code-block">readinessProbe:
+  httpGet: { path: /healthz, port: 80 }
+  initialDelaySeconds: 3
+  periodSeconds: 5      # 每 5 秒探一次</div>
+          <p>面试高频：<b>探针失败但容器没退，查哪个？</b>——readiness 失败看 Service endpoints（Pod 被摘），liveness 失败看 RESTARTS 计数。</p>`}
+      ]},
+      { title:'排障速查', points:[
+        { id:12, title:'Pod 状态机', tags:['核心','面试'],
+          content:`<table class="tbl"><colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+          <tr><th>状态</th><th>含义与动作</th></tr>
+          <tr><td>Pending</td><td>未调度：查 <b>kubectl describe pod</b> 的 Events（资源不足 / 污点 / 镜像不存在）</td></tr>
+          <tr><td>ImagePullBackOff</td><td>镜像拉不下来：查镜像名 / 加速配置 / registry 可达性</td></tr>
+          <tr><td>CrashLoopBackOff</td><td>启动即崩：<b>kubectl logs</b> 看应用报错，或 exec 进去调试</td></tr>
+          <tr><td>Running 但 RESTARTS 高</td><td>liveness 探针失败被反复重启：查探针路径与健康检查逻辑</td></tr>
+          <tr><td>Terminating 卡住</td><td>容器不响应 SIGTERM：查 Pod 是否有优雅退出逻辑（preStop）</td></tr></table>
+          <p>排障顺序永远：<span class="kw">get pods -A | grep -v Running</span> 找异常 → <span class="kw">describe</span> 看 Events → <span class="kw">logs</span> 看应用 → 必要时 <span class="kw">exec</span> 进容器验证。</p>`},
+        { id:13, title:'实战排障案例库', tags:['实战'],
+          content:`<div class="code-block"># 案例 1：ImagePullBackOff（国内直连 Docker Hub 超时）
+→ 配置 /etc/containerd/certs.d/docker.io/hosts.toml 走 daocloud 加速
+
+# 案例 2：flannel CrashLoopBackOff（重启 2531 次）
+→ describe 查 Events：br_netfilter 未加载
+→ modprobe br_netfilter + 写入 /etc/modules-load.d/k8s.conf 持久化
+
+# 案例 3：metrics-server 无数据
+→ 未安装 → 部署官方 components.yaml + --kubelet-insecure-tls patch
+
+# 案例 4：受限 kubeconfig 报 unable to load root certificates
+→ kubectl config view 默认把证书脱敏成 DATA+OMITTED
+→ 必须加 --raw 参数取真实 certificate-authority-data</div>
+          <p>这些都是你亲手踩过并修好的案例——<b>面试就是讲这个</b>，比背概念有说服力十倍。</p>`}
+      ]}
+    ]
+  },
+
+  {
+    id:5, title:'K8s 网络与服务网格', icon:'mesh', subtitle:'CNI、Service、Ingress、NetworkPolicy、Istio',
+    sections:[
+      { title:'网络模型', points:[
+        { id:1, title:'Pod 网络模型与 CNI', tags:['核心','面试'],
+          content:`<p>K8s 网络三定律（面试必背）：</p>
+          <p class="kbox">① Pod 与 Pod 直连互通（跨节点也要通）<br>② 节点上的 Agent（如 kubelet）能访问 Pod<br>③ Pod 看到的 IP 与自己对外使用的 IP 相同（<b>不做 NAT</b>）</p>
+          <p><b>CNI（Container Network Interface）</b>：实现这个模型的插件。每创建一个 Pod，CNI 就为它分配 IP 并配置网络（veth 对 + 网桥/overlay）。</p>
+          <div class="code-block">ls /opt/cni/bin/               # 本机 CNI 插件
+kubectl get pods -n kube-flannel -o wide   # flannel DaemonSet 状态
+ip link show flannel.1         # overlay 隧道接口</div>`},
+        { id:2, title:'Flannel vs Calico', tags:['重要','面试'],
+          content:`<table class="tbl"><colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+          <tr><th></th><th>Flannel</th><th>Calico</th></tr>
+          <tr><td>实现</td><td>纯 Overlay（VXLAN/UDP）</td><td>纯三层路由（BGP）或 Overlay</td></tr>
+          <tr><td>NetworkPolicy</td><td><b>不支持</b></td><td><b>原生支持</b>（iptables/BPF 实现）</td></tr>
+          <tr><td>性能</td><td>封装开销略高</td><td>路由模式更接近物理网络</td></tr>
+          <tr><td>适用</td><td>小集群、学习环境</td><td>生产首选（阿里云 ACK 默认）</td></tr></table>
+          <p>迁移注意：CNI 更换会重建全部 Pod，需保证 Pod CIDR 一致（Flannel 默认 10.244.0.0/16，Calico 配同样网段可平滑迁移）。</p>`}
+      ]},
+      { title:'Service 深入', points:[
+        { id:3, title:'Service 三种类型', tags:['实战','面试'],
+          content:`<table class="tbl"><colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+          <tr><th>类型</th><th>访问方式与场景</th></tr>
+          <tr><td>ClusterIP</td><td>集群内部虚拟 IP，默认类型；集群内任何 Pod 可用 <b>svc名:端口</b> 访问</td></tr>
+          <tr><td>NodePort</td><td>每个节点开放 <b>30000-32767</b> 端口，外部可经 节点IP:NodePort 访问</td></tr>
+          <tr><td>LoadBalancer</td><td>云厂商 LB 对接（公有云环境），外部用 LB 域名/公网 IP 访问</td></tr></table>
+          <div class="code-block">kubectl -n demo get svc        # 看 CLUSTER-IP 与 PORT(S)
+kubectl -n demo get endpoints    # 重点！看 Service 挂了哪些后端 Pod IP
+curl http://10.103.216.74        # 集群内访问 CLUSTER-IP（负载均衡到 endpoints）</div>
+          <p class="kbox"><b>实战记录：</b>ClusterIP 10.103.216.74 → endpoints 显示 3 个后端 → curl 通；patch 成 NodePort 后 80:30645，Mac 端 curl 三节点全部 200。<b>面试点</b>：Service 靠 <span class="kw">selector</span> 匹配 Pod 标签，endpoints 由 controller 自动维护。</p>`},
+        { id:4, title:'kube-proxy 与负载均衡', tags:['重要'],
+          content:`<p>Service 的流量转发由 <b>kube-proxy</b> 实现，两种模式：</p>
+          <table class="tbl"><colgroup><col style="width:20%"><col style="width:80%"></colgroup>
+          <tr><th>模式</th><th>说明</th></tr>
+          <tr><td>iptables</td><td>默认模式，规则多时延迟略高</td></tr>
+          <tr><td>ipvs</td><td>内核态负载均衡，性能高、支持更多调度算法（rr/wrr/lc）</td></tr></table>
+          <div class="code-block">kubectl get cm -n kube-system kube-proxy -o yaml | grep mode   # 当前模式
+kubectl logs -n kube-system kube-proxy-xxxxx   # 看转发日志</div>
+          <p>排障点：Pod 正常但 Service 不通 → 查 endpoints 是否有 IP → 查 kube-proxy 规则（iptables-save | grep svc）→ 查 conntrack。</p>`}
+      ]},
+      { title:'Ingress', points:[
+        { id:5, title:'Ingress 与 Ingress Controller', tags:['实战','面试'],
+          content:`<p><b>Ingress 是声明（规则）</b>，<b>Ingress Controller 是实现**（真正跑流量的 Nginx/Envoy）。只有规则没有 Controller 是不生效的。</p>
+          <div class="code-block">apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: { name: nginx-demo-ingress, namespace: demo }
+spec:
+  rules:
+    - host: demo.local          # 域名路由
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: nginx-demo-svc, port: { number: 80 } }</div>
+          <p class="kbox"><b>实战记录：</b>部署 ingress-nginx v1.12.0（镜像 digest 锁定拉取失败 → 去 digest 后 Running）；controller NodePort 80:30514；浏览器访问 <span class="kw">http://demo.local:30514/</span>（本机 hosts 加 192.168.199.207 demo.local）看到欢迎页。<b>面试点</b>：无 Host 头 404 vs 带 Host 头 200 的差异 = Ingress 按 host 路由的验证方法。</p>`},
+        { id:6, title:'Ingress vs Service', tags:['重要'],
+          content:`<table class="tbl"><colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+          <tr><th></th><th>Service（四层）</th><th>Ingress（七层）</th></tr>
+          <tr><td>层级</td><td>L4（IP+端口）</td><td>L7（域名/路径）</td></tr>
+          <tr><td>能力</td><td>内部负载均衡</td><td>域名路由、HTTPS 卸载、路径分流</td></tr>
+          <tr><td>典型</td><td>集群内调用、NodePort</td><td>对外暴露多个域名/服务</td></tr></table>
+          <p>一句话：<b>Service 管"通不通"，Ingress 管"往哪走"</b>。生产环境 Ingress Controller 前通常再挂一层云 LB。</p>`}
+      ]},
+      { title:'NetworkPolicy', points:[
+        { id:7, title:'NetworkPolicy 与默认拒绝', tags:['重要','面试'],
+          content:`<p>NetworkPolicy 是<b>Pod 级防火墙</b>（只在支持它的 CNI 生效：Calico/Cilium，flannel 不行）。</p>
+          <div class="code-block">apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: deny-all, namespace: team-a }
+spec:
+  podSelector: {}               # 匹配命名空间所有 Pod
+  policyTypes: ["Ingress"]      # 只管控入站
+---
+# 放行：允许来自前端 Pod 访问 80 端口
+spec:
+  podSelector: { matchLabels: { app: backend } }
+  ingress:
+    - from: [{ podSelector: { matchLabels: { app: frontend } } }]
+      ports: [{ port: 80 }]</div>
+          <p class="kbox"><b>面试必答：</b>创建 NetworkPolicy 后，未匹配到的流量<b>默认被拒</b>（白名单模型）。所以要先写 deny-all 再写放行规则（默认拒绝 + 显式放行）。这也正是从 flannel 迁 Calico 的动机。</p>`}
+      ]},
+      { title:'Istio Service Mesh', points:[
+        { id:8, title:'Service Mesh 是什么', tags:['重要','面试'],
+          content:`<p>把微服务通信能力（服务发现、熔断、限流、重试、可观测）<b>从业务代码里剥离</b>，下沉到 <b>Sidecar 代理</b>（Envoy）里，业务代码不用改。</p>
+          <div class="code-block"># 流量拓扑
+Pod A(业务容器 + Envoy sidecar) →(mTLS)→ Pod B(Envoy sidecar + 业务容器)
+                    ↑ 控制面：Istiod 下发规则 ↓</div>
+          <p><b>控制面（Istiod）</b>：管理流量规则、下发证书；<b>数据面（Envoy）</b>：实际处理流量。</p>`},
+        { id:9, title:'Istio 核心能力', tags:['重要'],
+          content:`<table class="tbl"><colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+          <tr><th>能力</th><th>场景</th></tr>
+          <tr><td>流量治理</td><td>熔断、重试、超时、金丝雀发布（权重分流）、故障注入</td></tr>
+          <tr><td>安全</td><td>mTLS 双向认证、RBAC 访问控制</td></tr>
+          <tr><td>可观测</td><td>请求追踪（Tracing）、指标（Prometheus）、访问日志</td></tr>
+          <tr><td>多集群</td><td>跨集群服务发现与互通</td></tr></table>
+          <p class="kbox"><b>HiAgent JD 相关：</b>"Istio 服务部署"出现在岗位要求里——大模型推理服务也走 Service Mesh 做金丝雀发布和流量治理（新模型版本小流量灰度）。面试能讲"用 Istio 给模型服务做 10% 灰度"非常对口。</p>`}
+      ]}
+    ]
+  },
+
+  {
+    id:6, title:'存储与安全', icon:'sec', subtitle:'PV/PVC、RBAC、Pod 安全、etcd 备份恢复',
+    sections:[
+      { title:'存储', points:[
+        { id:1, title:'PV / PVC / StorageClass', tags:['核心','面试'],
+          content:`<p>三个概念各管一段：</p>
+          <table class="tbl"><colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+          <tr><th>对象</th><th>作用</th></tr>
+          <tr><td>PV（PersistentVolume）</td><td>实际存储资源（NFS 目录、云盘、local-path）</td></tr>
+          <tr><td>PVC（PersistentVolumeClaim）</td><td>使用申请：声明"我要 5Gi 读写一块"</td></tr>
+          <tr><td>StorageClass</td><td>动态供应：PVC 申请时自动创建 PV（不用手工建）</td></tr></table>
+          <div class="code-block">apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: { name: data-pvc, namespace: team-a }
+spec:
+  accessModes: ["ReadWriteOnce"]     # RWO 单节点读写 / RWX 多节点读写
+  storageClassName: local-path
+  resources: { requests: { storage: 5Gi } }</div>
+          <p>生命周期：<b>Pending（等 PV）→ Bound（绑定）→ 使用 → Released（删除 PVC 后）</b>。绑定后 PV 与 PVC 一对一，<b>删 PVC 默认不删数据</b>（数据回收取决于 reclaimPolicy）。</p>`},
+        { id:2, title:'StatefulSet 与有状态应用', tags:['重要'],
+          content:`<p>有状态应用（MySQL、etcd、Redis）用 StatefulSet：</p>
+          <div class="code-block"># 稳定网络标识：pod 名固定（my-sql-0, my-sql-1...）
+# 稳定存储：每个副本绑定自己的 PVC（my-sql-0-data-pvc...）
+# 有序启停：启动 0→1→2，删除 2→1→0
+kubectl scale sts mysql --replicas=3
+kubectl get pvc | grep mysql    # 每个副本一个 PVC</div>
+          <p>面试点：为什么 MySQL 不用 Deployment？——Deployment 副本是无名氏（随机后缀），StatefulSet 副本有固定身份和固定存储。</p>`}
+      ]},
+      { title:'RBAC 安全', points:[
+        { id:3, title:'RBAC 三件套', tags:['核心','面试','实战'],
+          content:`<p>K8s 权限模型 = <b>身份 × 权限规则 × 绑定</b>：</p>
+          <table class="tbl"><colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+          <tr><th>对象</th><th>回答什么问题</th><th>类比</th></tr>
+          <tr><td>ServiceAccount</td><td>你是谁（身份）</td><td>工牌</td></tr>
+          <tr><td>Role / ClusterRole</td><td>你能干什么（权限，Role 限命名空间 / ClusterRole 全集群）</td><td>门禁权限表</td></tr>
+          <tr><td>RoleBinding / ClusterRoleBinding</td><td>把权限给谁（绑定）</td><td>刷卡授权</td></tr></table>
+          <div class="code-block"># Role：只允许在 team-a 内看 Pod
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: { name: pod-reader, namespace: team-a }
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]</div>
+          <p>权限 = <b>资源 × 操作 × 命名空间</b>，任一维度超出 → Forbidden。</p>`},
+        { id:4, title:'受限 kubeconfig 实战', tags:['实战'],
+          content:`<p class="kbox"><b>实操指引：</b>生成受限 kubeconfig 并验证授权边界的完整过程（build-deployer-kubeconfig.sh + 三条验证命令 + 真实 Forbidden 输出），见模块 3「K8s 集群实战全记录」→ RBAC 受限 kubeconfig 验证。</p>`},
+        { id:5, title:'Pod Security Admission（PSA）', tags:['重要','面试'],
+          content:`<p>用<b>准入控制器</b>强制 Pod 的安全规格，三个档位：</p>
+          <table class="tbl"><colgroup><col style="width:18%"><col style="width:82%"></colgroup>
+          <tr><th>级别</th><th>要求</th></tr>
+          <tr><td>privileged</td><td>不限制（最宽松）</td></tr>
+          <tr><td>baseline</td><td>阻止明显危险：禁止 root、禁止 hostNetwork/hostPID、禁止特权容器</td></tr>
+          <tr><td>restricted</td><td>最强：强制非 root、只读根文件系统、seccomp、drop ALL capabilities 等</td></tr></table>
+          <div class="code-block">kubectl label ns team-a pod-security.kubernetes.io/enforce=restricted
+kubectl label ns team-a pod-security.kubernetes.io/warn=baseline</div>
+          <p>模式：<b>enforce</b>（拒绝）/ <b>audit</b>（记录）/ <b>warn</b>（警告）。面试点：<b>restricted 下 Nginx 默认镜像跑不起来</b>（官方镜像默认 root），需要改 securityContext 或换非 root 镜像。</p>`},
+        { id:6, title:'镜像安全与 Secret 加密', tags:['重要'],
+          content:`<ul>
+            <li><b>镜像扫描</b>：trivy / 镜像仓库自带扫描，高危 CVE 阻断上线</li>
+            <li><b>镜像签名</b>：cosign 签名 + 校验，防供应链投毒（CI/CD 环节做）</li>
+            <li><b>Secret 加密</b>：base64 只是编码，etcd 里要开 <span class="kw">EncryptionConfiguration</span> 加密（kube-apiserver 配置）</li>
+            <li><b>最小权限</b>：ServiceAccount 默认无权限，显式授权；避免用 admin 账号跑业务</li>
+          </ul>`}
+      ]},
+      { title:'etcd 备份恢复', points:[
+        { id:7, title:'etcd 快照备份', tags:['核心','面试','实战'],
+          content:`<p>etcd 存了 K8s 全部状态——<b>没有备份的集群等于没集群</b>。</p>
+          <div class="code-block"># 备份（Master 上执行）
+ETCDCTL_API=3 etcdctl --endpoints=127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  snapshot save /backup/etcd-$(date +%F).db
+
+# 验证快照
+ETCDCTL_API=3 etcdctl snapshot status /backup/etcd-$(date +%F).db</div>
+          <p>恢复流程（灾难演练标准答案）：停 kube-apiserver → 用快照 restore 出新数据目录 → 改 etcd 配置指向 → 重启 etcd → 恢复 apiserver。**建议每 6-12 小时一次快照 + 异地存放**。</p>`},
+        { id:8, title:'灾难恢复演练', tags:['面试'],
+          content:`<p class="kbox"><b>面试场景题标准答案（etcd 数据损坏）：</b></p>
+          <div class="code-block">1. 备份好损坏的数据目录（别急着删）
+2. ETCDCTL_API=3 etcdctl snapshot restore backup.db \
+     --data-dir=/var/lib/etcd-restore
+3. 改 /etc/kubernetes/manifests/etcd.yaml 的 volume 指向新目录
+4. systemctl restart kubelet（静态 Pod 重新拉起 etcd）
+5. kubectl get nodes 验证集群恢复</div>
+          <p>完成后立刻验证：<span class="kw">kubectl get nodes / get pods -A</span> 与备份点一致。etcd 是单点风险（3 节点 HA 只是容灾节点，不是备份）。</p>`}
+      ]}
+    ]
+  },
+
+  {
+    id:7, title:'可观测性', icon:'obs', subtitle:'指标、日志、告警与故障演练闭环',
+    sections:[
+      { title:'指标监控', points:[
+        { id:1, title:'Prometheus 核心模型', tags:['核心','面试'],
+          content:`<p>Prometheus = <b>Pull 模型</b>：主动去目标拉指标（不是目标推送）。</p>
+          <div class="code-block"># 架构
+Exporter(暴露指标) ← Prometheus(定时拉取/存储/告警) → Grafana(可视化)
+                          ↘ Alertmanager → 钉钉/邮件</div>
+          <p>核心概念：<b>指标（metric）</b> + 标签（label）= 时间序列。<span class="kw">node-exporter</span> 采集节点指标，<span class="kw">kube-state-metrics</span> 采集 K8s 对象状态（Pod 数、Deployment 副本数）。</p>`},
+        { id:2, title:'USE / RED 方法', tags:['重要','面试'],
+          content:`<table class="tbl"><colgroup><col style="width:20%"><col style="width:80%"></colgroup>
+          <tr><th>方法</th><th>对象</th><th>指标</th></tr>
+          <tr><td>USE</td><td>基础设施（节点/磁盘/网络）</td><td><b>U</b>tilization 利用率、<b>S</b>aturation 饱和度、<b>E</b>rrors 错误</td></tr>
+          <tr><td>RED</td><td>服务（API/微服务）</td><td><b>R</b>ate 请求速率、<b>E</b>rrors 错误率、<b>D</b>uration 延迟</td></tr>
+          <tr><td>四大黄金信号</td><td>整体</td><td>延迟、流量、错误、饱和度</td></tr></table>
+          <p>回答"你们监控什么"：<b>基础层 USE + 服务层 RED + 业务指标</b>，三层都说全。</p>`},
+        { id:3, title:'Grafana 与告警', tags:['重要'],
+          content:`<div class="code-block"># 告警规则（Alertmanager 发送）
+groups:
+- name: node
+  rules:
+  - alert: NodeDown
+    expr: up == 0
+    for: 2m                  # 持续 2 分钟才触发（防抖动）
+    annotations:
+      summary: "节点 {{ $labels.instance }} 挂了"
+      description: "已持续 {{ $value }} 状态 2 分钟"</div>
+          <p>告警设计原则：<b>for 防抖动</b>、告警要可执行（带上排查入口）、区分告警（需人处理）与通知（看一眼就行）、避免告警风暴（聚合+路由）。</p>`}
+      ]},
+      { title:'日志体系', points:[
+        { id:4, title:'Loki vs ELK', tags:['重要'],
+          content:`<table class="tbl"><colgroup><col style="width:20%"><col style="width:40%"><col style="width:40%"></colgroup>
+          <tr><th></th><th>Loki（云原生轻量）</th><th>ELK（全功能重量）</th></tr>
+          <tr><td>索引</td><td>只索引元数据（标签），内容不建索引</td><td>全文索引（ES）</td></tr>
+          <tr><td>资源</td><td>轻，适合小集群</td><td>重（ES 吃内存）</td></tr>
+          <tr><td>查询</td><td>LogQL，配合 Prometheus/Grafana</td><td>Kibana 查询</td></tr>
+          <tr><td>组件</td><td>Promtail(采集) + Loki(存储) + Grafana(展示)</td><td>Filebeat + Logstash + ES + Kibana</td></tr></table>
+          <p>K8s 容器日志天然是 stdout/stderr → 由运行时收集到节点 → Promtail/Filebeat 采集。面试点：<b>容器日志不落盘</b>，容器删了就没了，必须走日志平台。</p>`},
+        { id:5, title:'日志分析三句话', tags:['重要'],
+          content:`<p>技术支持岗的日志分析三板斧（HiAgent 岗位 JD 直接相关）：</p>
+          <div class="code-block"># 1. 定位：时间窗口 + 关键词过滤（先缩小范围）
+grep "ERROR" app.log | awk '$1 > "2026-09-21T10:00" {print}'
+
+# 2. 统计：错误类型聚合（找模式，不找单条）
+grep -oE '"error_code":"[^"]+"' app.log | sort | uniq -c | sort -rn
+
+# 3. 关联：把请求 ID 串起来（全链路）
+grep "req-abc123" app.log | tail -50</div>
+          <p>面对"系统报错"别急着翻日志——<b>先问时间、范围、变更</b>，再带着假设去查。</p>`}
+      ]},
+      { title:'故障演练', points:[
+        { id:6, title:'故障演练闭环', tags:['核心','面试','实战'],
+          content:`<p>完整闭环（面试项目素材）：<b>制造故障 → 告警触发 → 指标定位 → 恢复 → 写复盘</b></p>
+          <table class="tbl"><colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+          <tr><th>步骤</th><th>动作</th></tr>
+          <tr><td>制造故障</td><td>kill kubelet / 删 etcd Pod / 节点宕机 / 镜像拉取失败</td></tr>
+          <tr><td>告警触发</td><td>NodeDown、Pod CrashLoop 等规则命中</td></tr>
+          <tr><td>指标定位</td><td>Grafana 看 CPU/内存/网络 → 锁定故障域</td></tr>
+          <tr><td>恢复</td><td>重启服务 / 扩容 / 回滚 / 切换节点</td></tr>
+          <tr><td>复盘</td><td>现象→定位→根因→修复→预防（写成文档）</td></tr></table>
+          <p class="kbox"><b>你的真实素材：</b>三节点全宕→重启→集群自动自愈、etcd 数据完好——"三节点高可用下控制面故障恢复"就是一次真实演练，面试直接讲。</p>`}
+      ]}
+    ]
+  },
+
+  {
+    id:8, title:'数据库与中间件', icon:'db', subtitle:'MySQL、Redis、消息队列、Web 服务',
+    sections:[
+      { title:'MySQL', points:[
+        { id:1, title:'主从复制', tags:['核心','面试'],
+          content:`<p>基于 <b>Binlog</b> 同步：主库写 Binlog → 从库 IO 线程拉取 → SQL 线程回放。</p>
+          <div class="code-block"># 主库
+[mysqld]
+server-id=1
+log-bin=mysql-bin
+CREATE USER 'repl'@'%' IDENTIFIED BY 'xxx';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+SHOW MASTER STATUS;          # 记 File + Position
+
+# 从库
+CHANGE MASTER TO MASTER_HOST='1.2.3.4', MASTER_LOG_FILE='mysql-bin.000001', MASTER_LOG_POS=154;
+START SLAVE;
+SHOW SLAVE STATUS\\G          # 看 Slave_IO_Running / Slave_SQL_Running 双 Yes</div>
+          <p>模式：<b>异步</b>（默认，可能丢数据）/ <b>半同步</b>（至少一个从库确认）/ <b>GTID</b>（按事务 ID 定位，推荐）。面试点：主从延迟（Seconds_Behind_Master）排查——大事务、从库负载、单线程回放。</p>`},
+        { id:2, title:'备份恢复', tags:['核心'],
+          content:`<table class="tbl"><colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+          <tr><th>方式</th><th>特点与适用</th></tr>
+          <tr><td>mysqldump</td><td>逻辑备份，SQL 文件；小数据量、跨版本迁移；<b>锁表</b>（--single-transaction 可免锁 InnoDB）</td></tr>
+          <tr><td>XtraBackup</td><td>物理备份，<b>热备不锁表</b>；大数据量生产环境首选</td></tr>
+          <tr><td>Binlog 增量</td><td>基于日志时间点恢复（PITR）：全量 + binlog 重放到出事前一秒</td></tr></table>
+          <div class="code-block">mysqldump -u root -p --single-transaction --master-data=2 mydb > mydb.sql
+mysql -u root -p mydb < mydb.sql</div>
+          <p>原则：<b>备份要定期验证可恢复</b>，没验证过的备份等于没有。</p>`},
+        { id:3, title:'慢查询与优化', tags:['面试'],
+          content:`<div class="code-block">SET GLOBAL slow_query_log=ON;
+SET GLOBAL long_query_time=2;      # 超过 2 秒记录
+EXPLAIN SELECT * FROM orders WHERE user_id=123;
+# 看 key（是否用索引）、type（ref/ALL 全表扫）、rows（扫描行数）</div>
+          <p>优化顺序：<b>索引 → SQL 改写 → 参数 → 架构</b>（缓存/读写分离/分库分表）。type=ALL 大表必挂。覆盖索引（extra: Using index）是杀手锏。</p>`}
+      ]},
+      { title:'Redis', points:[
+        { id:4, title:'Redis 核心概念', tags:['核心','面试'],
+          content:`<p>内存型 NoSQL，单线程模型（6.0+ 多线程处理网络 IO，命令执行仍单线程）。</p>
+          <div class="code-block"># 数据结构
+String / Hash / List / Set / ZSet(有序集合，排行榜)
+SET k v EX 60            # 60 秒过期（缓存必设 TTL）
+INCR counter             # 计数器/限流
+SETNX lock uuid EX 10    # 分布式锁
+ZADD rank 100 user1      # 排行榜
+# 持久化
+RDB（快照，恢复快丢数据）/ AOF（追加日志，恢复慢不丢）</div>
+          <p>场景：缓存、分布式锁、限流、会话存储、计数器。<b>缓存穿透/击穿/雪崩</b>是面试三兄弟：穿透（查不存在→布隆过滤/空值缓存）、击穿（热点 key 过期→互斥锁）、雪崩（大面积过期→随机 TTL）。</p>`},
+        { id:5, title:'Redis 高可用', tags:['重要'],
+          content:`<p>主从复制 + 哨兵（Sentinel）或集群模式（Cluster）。</p>
+          <div class="code-block"># Sentinel：监控主节点，主挂自动选举新主（failover）
+sentinel monitor mymaster 1.2.3.4 6379 2
+# Cluster：数据分片（16384 个槽），自动故障转移</div>
+          <p>K8s 里部署注意：Redis 是有状态应用，用 StatefulSet + 每个副本独立 PVC（模块 5）。<b>内存上限必须设</b>（maxmemory），否则 OOM 或被宿主机杀。</p>`}
+      ]},
+      { title:'消息队列', points:[
+        { id:6, title:'RabbitMQ vs Kafka', tags:['重要'],
+          content:`<table class="tbl"><colgroup><col style="width:22%"><col style="width:39%"><col style="width:39%"></colgroup>
+          <tr><th></th><th>RabbitMQ</th><th>Kafka</th></tr>
+          <tr><td>定位</td><td>业务级可靠消息（AMQP）</td><td>高吞吐流平台（日志/大数据）</td></tr>
+          <tr><td>模式</td><td>队列 + Exchange 路由，消息消费后删除</td><td>Topic + 分区，日志保留可回溯</td></tr>
+          <tr><td>吞吐</td><td>万级</td><td>百万级</td></tr>
+          <tr><td>典型</td><td>订单通知、异步任务、削峰</td><td>日志采集、埋点、流处理</td></tr></table>
+          <p>面试点：<b>为什么 Kafka 吞吐高</b>——顺序写盘 + 分区并行 + 批量/零拷贝。</p>`}
+      ]},
+      { title:'Web 服务', points:[
+        { id:7, title:'Nginx 核心配置', tags:['核心'],
+          content:`<div class="code-block">server {
+  listen 80;
+  server_name demo.local;
+
+  location / {
+    proxy_pass http://backend-svc:8080;   # 反向代理
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+  }
+
+  location /static/ { alias /data/static/; }   # 静态资源
+
+  # HTTPS 卸载
+  # listen 443 ssl;
+  # ssl_certificate     /etc/nginx/tls/tls.crt;
+  # ssl_certificate_key /etc/nginx/tls/tls.key;
+}</div>
+          <p>经典架构：<b>Nginx（反代+负载）→ Tomcat/应用集群 → 数据库</b>。健康检查：Nginx 探后端，挂掉自动摘除（upstream 的 max_fails/fail_timeout）。</p>`}
+      ]}
+    ]
+  },
+
+  {
+    id:9, title:'自动化与 IaC', icon:'auto', subtitle:'Shell、Ansible、Terraform、CI/CD 与 GitOps',
+    sections:[
+      { title:'脚本语言', points:[
+        { id:1, title:'Shell 必备', tags:['核心'],
+          content:`<div class="code-block">#!/bin/bash
+set -euo pipefail          # 出错即停 + 未定义变量报错（生产脚本必加）
+NAME="\${1:-default}"       # 带默认值
+if [[ -f /etc/hosts ]]; then echo "存在"; fi
+for f in *.log; do echo "$f"; done
+# 防粘贴丢失：用 heredoc 写文件再执行
+cat << 'EOF' > setup.sh
+#!/bin/bash
+echo "内容原样写入"
+EOF</div>
+          <p class="kbox"><b>实战记录：</b>K8s 安装最稳妥方式是 <span class="kw">cat << 'EOF'</span> 一次性写脚本再执行——多行命令直接粘贴终端时，前一条还在跑后一条就被吞（apt-get 场景高发）。</p>`},
+        { id:2, title:'Python 运维脚本', tags:['重要'],
+          content:`<div class="code-block">import subprocess, json, requests
+
+# 1. 执行命令
+out = subprocess.run(['kubectl','get','pods','-A','-o','json'],
+                     capture_output=True, text=True)
+data = json.loads(out.stdout)
+
+# 2. 分析：找出非 Running 的 Pod
+bad = [p['metadata']['name'] for p in data['items']
+       if p['status']['phase'] != 'Running']
+print(bad)
+
+# 3. 调 API（HiAgent 技术支持日常：分析调用日志）
+r = requests.post("https://api.volcengine.com/ark/v3/chat/completions",
+                  headers={"Authorization":"Bearer sk-xxx"},
+                  json={"model":"doubao-pro","messages":[{"role":"user","content":"hi"}]})
+print(r.json())</div>
+          <p>技术支持岗面试点：能写脚本做<b>日志统计、API 调用、批量巡检</b>就够，不用刷算法。</p>`}
+      ]},
+      { title:'Ansible', points:[
+        { id:3, title:'Ansible 核心', tags:['核心'],
+          content:`<p>无 Agent，基于 <b>SSH</b>，幂等（重复执行结果一致）。</p>
+          <div class="code-block"># inventory（清单）
+[master]
+192.168.199.207 ansible_user=sy
+[workers]
+192.168.199.217 ansible_user=root
+192.168.199.227 ansible_user=sy
+
+# playbook：把三台基础配置一键化
+- hosts: all
+  become: yes
+  tasks:
+    - name: 加载内核模块
+      modprobe: name={{ item }} state=present
+      loop: [overlay, br_netfilter]
+    - name: 配置 sysctl
+      sysctl: name={{ item.key }} value={{ item.value }}
+      loop:
+        - { key: net.ipv4.ip_forward, value: '1' }</div>
+          <p>命令：<span class="kw">ansible-playbook -i hosts playbook.yml</span>。<b>幂等性</b>是 Ansible 面试第一问：同一个 playbook 跑两遍，结果一致、无副作用。</p>`}
+      ]},
+      { title:'Terraform', points:[
+        { id:4, title:'Terraform 核心', tags:['核心'],
+          content:`<p>IaC：用代码声明云资源，<b>plan → apply → destroy</b>，state 记录资源映射。</p>
+          <div class="code-block"># 用 Proxmox provider 管 PVE 上的 VM（零成本练 IaC）
+provider "proxmox" { pm_api_url = "https://pve.local:8006/api2/json" }
+
+resource "proxmox_vm_qemu" "node" {
+  name   = "k8s-node-\${count.index}"
+  count  = 3
+  cores  = 4
+  memory = 8192
+  disk   = { size = "150G" }
+}
+
+terraform plan      # 预览变更
+terraform apply     # 创建
+terraform destroy   # 销毁（云上务必养成习惯，防扣费）</div>
+          <p>核心概念：<b>provider / resource / variable / output / state</b>。state 是单点（锁 + 远端存储：S3/OSS + DynamoDB 锁）。</p>`},
+        { id:5, title:'GitOps 与 ArgoCD', tags:['重要'],
+          content:`<p>GitOps：<b>Git 仓库是唯一真相</b>，集群状态持续向 Git 对齐。</p>
+          <div class="code-block"># ArgoCD 核心
+git push（改 manifests）
+    ↓ 自动/手动同步
+ArgoCD 拉取 → kubectl apply 到集群 → 状态漂移自动回滚
+# 回滚 = git revert，审计 = git log</div>
+          <p>对比传统 CI/CD：传统是"流水线推送到集群"，GitOps 是"集群主动从 Git 拉"——<b>声明式 + 自愈</b>。面试高频：GitOps 的好处（审计、回滚快、环境一致、权限分离）。</p>`}
+      ]},
+      { title:'CI/CD', points:[
+        { id:6, title:'流水线标准形态', tags:['核心'],
+          content:`<div class="code-block"># GitLab CI 示例（.gitlab-ci.yml）
+stages: [build, test, deploy]
+
+build:
+  stage: build
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA .
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+
+deploy:
+  stage: deploy
+  script:
+    - kubectl set image deployment/app app=$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+    - kubectl rollout status deployment/app
+  only: [main]</div>
+          <p>流水线四要素：<b>代码 → 构建（镜像）→ 测试/扫描 → 部署</b>。安全加配：镜像签名、Secrets 管理（不要明文密码进 yaml）、部署前 trivy 扫描。</p>`},
+        { id:7, title:'CI 与 CD 的区别', tags:['核心','面试'],
+          content:`<table class="tbl"><colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+          <tr><th></th><th>职责</th></tr>
+          <tr><td>CI（持续集成）</td><td>代码合并后<b>自动构建 + 测试</b>：编译、单元测试、镜像构建、代码扫描——问题越早暴露越便宜</td></tr>
+          <tr><td>CD（持续交付/部署）</td><td>把验证过的产物<b>自动部署</b>：持续交付=部署到预发等人工点确认；持续部署=全自动上生产</td></tr></table>
+          <div class="code-block"># 一句话区分
+CI: 提交代码 → 自动出"能跑的产物"（镜像/包）
+CD: 产物 → 自动/半自动上线
+# 进阶：CD 分两层
+持续交付（Continuous Delivery）= 随时可发布，发布动作人工触发
+持续部署（Continuous Deployment）= 代码合并即自动上生产（需高测试覆盖率）</div>
+          <p>面试答法：CI 解决"集成地狱"，CD 解决"发布靠人肉"。云原生下 CD 往往用 <b>GitOps</b>（模块 9 的 ArgoCD）实现。</p>`},
+        { id:8, title:'CI/CD 工具怎么选', tags:['重要'],
+          content:`<table class="tbl"><colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+          <tr><th>工具</th><th>特点</th></tr>
+          <tr><td>GitLab CI</td><td>代码和流水线同仓库（.gitlab-ci.yml），自托管友好，中小企业首选</td></tr>
+          <tr><td>Jenkins</td><td>老牌全能，插件生态大，但维护成本高（Master-Agent 架构）</td></tr>
+          <tr><td>GitHub Actions</td><td>云上托管，YAML 声明式，生态丰富，开源项目标配</td></tr>
+          <tr><td>云厂商流水线</td><td>CodePipeline / 阿里云云效：和云资源天然集成</td></tr>
+          <tr><td>Tekton</td><td>云原生 CI/CD（K8s 原生），流水线也是 CRD——K8s 圈趋势</td></tr></table>
+          <p>面试点：不用背全部，讲清"<b>声明式 YAML 是主流、K8s 原生（Tekton/ArgoCD）是大趋势</b>"就够。</p>`},
+        { id:9, title:'发布策略：蓝绿 / 金丝雀 / 滚动', tags:['核心','面试'],
+          content:`<table class="tbl"><colgroup><col style="width:22%"><col style="width:78%"></colgroup>
+          <tr><th>策略</th><th>机制与适用</th></tr>
+          <tr><td>滚动（Rolling）</td><td>新老副本交替（K8s Deployment 默认，maxSurge/maxUnavailable 控制节奏）——无感、资源占用平稳</td></tr>
+          <tr><td>蓝绿（Blue/Green）</td><td>两套环境切换：新版本全量就绪 → 流量整体切到绿——回滚=切回蓝，秒级；成本翻倍（要两套资源）</td></tr>
+          <tr><td>金丝雀（Canary）</td><td>先放 5%-10% 流量给新版本观察，无异常再逐步放量——最稳妥，灰度发布标配（Istio/Argo Rollouts 实现）</td></tr></table>
+          <div class="code-block"># K8s 里的对应
+滚动：Deployment rollout（你实战过！模块 3）
+金丝雀：Ingress/Service Mesh 按权重分流
+蓝绿：两套 Deployment + Service 切换标签（kubectl patch svc selector 版本=v2）</div>
+          <p class="kbox"><b>面试讲法：</b>"我实战过 K8s 滚动更新（1 of 3 new replicas 的交替过程）和 rollout undo 秒级回滚；金丝雀/蓝绿是生产发布标配，原理是流量控制不是双份环境。"</p>`},
+        { id:10, title:'流水线 → K8s 的完整闭环', tags:['重要','面试'],
+          content:`<div class="code-block"># 一次标准发布的完整链路
+开发提交代码 (git push)
+  ↓ CI：拉代码 → 单元测试 → 构建镜像 → 推镜像仓库
+  ↓ 质量门禁：trivy 镜像扫描 / 代码扫描 / 测试报告
+  ↓ CD 触发（自动 或 人工审批）
+  ↓ 部署到 K8s（三选一）
+     ① kubectl set image deployment/app app=img:v2   ← 最简单
+     ② helm upgrade app ./chart --set image.tag=v2   ← 参数化
+     ③ ArgoCD 同步（GitOps，见模块 9）               ← 声明式
+  ↓ rollout status 确认发布成功
+  ↓ 失败？ rollout undo 回滚上一版本</div>
+          <p>面试点：能完整画出这条链路 + 说出每步的失败处理，就是"有 CI/CD 实战思维"的证明（哪怕在练习环境跑的）。</p>`}
+      ]}
+    ]
+  },
+
+  {
+    id:10, title:'公有云与合规', icon:'cloud', subtitle:'阿里云 / AWS 核心服务、成本控制、等保映射',
+    sections:[
+      { title:'核心服务', points:[
+        { id:1, title:'云上网络：VPC 三件套', tags:['核心'],
+          content:`<p>VPC（私有网络）是云上一切的基础：</p>
+          <table class="tbl"><colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+          <tr><th>组件</th><th>作用</th></tr>
+          <tr><td>子网（Subnet）</td><td>网段划分：公网子网（挂 NAT/EIP）/ 私网子网（内部服务）</td></tr>
+          <tr><td>路由表</td><td>流量走向：默认本地路由 + 指向 NAT/IGW 的路由</td></tr>
+          <tr><td>安全组 / 网络 ACL</td><td>实例级/子网级防火墙（五元组规则）</td></tr></table>
+          <p>典型架构：<b>SLB（公网）→ 应用服务器（公网子网）→ RDS/Redis（私网子网）</b>。面试点：为什么数据库放私网？——只允许应用访问，不暴露公网。</p>`},
+        { id:2, title:'计算与存储', tags:['重要'],
+          content:`<table class="tbl"><colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+          <tr><th>服务</th><th>说明</th></tr>
+          <tr><td>ECS / EC2</td><td>云服务器：按量付费可随时销毁（学习首选）；镜像、快照、弹性伸缩组</td></tr>
+          <tr><td>OSS / S3</td><td>对象存储：静态资源、备份归档；生命周期策略降成本</td></tr>
+          <tr><td>RDS</td><td>托管数据库：自动备份、高可用、性能监控（省去自己搭主从）</td></tr>
+          <tr><td>SLB / ELB</td><td>负载均衡：四层/七层，健康检查，自动摘除故障实例</td></tr></table>
+          <p>面试点：RDS vs 自建 MySQL 的取舍（托管省运维 vs 自建灵活可控 + 省钱）。</p>`},
+        { id:3, title:'IAM 最小权限', tags:['重要'],
+          content:`<p>IAM = 云的 RBAC：<b>用户/角色/策略</b>三件套，原则是<b>最小权限</b>。</p>
+          <div class="code-block"># 策略示例（JSON）：只允许操作指定 Bucket
+{
+  "Version": "1",
+  "Statement": [{
+    "Effect": "Allow",
+    "Action": ["oss:GetObject"],
+    "Resource": ["acs:oss:*:*:my-bucket/*"]
+  }]
+}</div>
+          <p>危险操作（面试点）：<b>不要用主账号 AK 跑业务</b>；AK 泄漏是云上第一大事故源（GitHub 搜到即被盗刷）。配 <b>AccessKey 轮换</b> + <b>子账号</b> + <b>最小权限策略</b>。</p>`}
+      ]},
+      { title:'成本控制', points:[
+        { id:4, title:'预算告警与防护', tags:['重要','高危'],
+          content:`<p>云上学习第一原则：<b>先设预算告警，再开资源</b>。</p>
+          <div class="code-block"># 阿里云：用户中心 → 预算管理 → 设置月度预算 + 阈值告警（80%/100%）
+# AWS：Budgets + Cost Anomaly Detection
+# 必做清单
+1. 所有实验资源用按量付费
+2. 每次实验结束 terraform destroy / 手动释放
+3. 数据库/负载均衡/公网 IP 是最容易遗忘的扣费项
+4. 设置 MFA（多因素认证）防被盗</div>
+          <p>典型事故：ECS 忘记释放月扣几百、EIP 挂着没人用也在收费、RDS 默认多可用区贵一倍。面试能讲"你如何防止云费用失控"很加分。</p>`}
+      ]},
+      { title:'合规', points:[
+        { id:5, title:'等保 2.0 速览', tags:['重要'],
+          content:`<p>国内合规基准：<b>等级保护 2.0</b>，分五级（1-5 逐级严格），云上常见二级/三级。</p>
+          <table class="tbl"><colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+          <tr><th>控制项</th><th>落地动作</th></tr>
+          <tr><td>身份鉴别</td><td>双因素认证（MFA）、密码复杂度、登录失败锁定</td></tr>
+          <tr><td>访问控制</td><td>最小权限、角色分离（运维/开发/审计）</td></tr>
+          <tr><td>安全审计</td><td>操作日志留存 ≥ 180 天、云审计开启</td></tr>
+          <tr><td>入侵防范</td><td>补丁管理、主机安全 Agent、WAF/防火墙</td></tr>
+          <tr><td>数据备份</td><td>定期备份 + 异地容灾 + 恢复演练</td></tr></table>
+          <p>面试答法：把等保条款映射到你自己的集群配置（如"日志留存 180 天 → 我们的 Loki 日志保留策略"），比背条款强。</p>`}
+      ]}
+    ]
+  },
+
+  {
+    id:11, title:'AI 大模型与 HiAgent', icon:'ai', subtitle:'大模型概念、推理部署、Agent 平台、技术支持方法论',
+    sections:[
+      { title:'大模型概念', points:[
+        { id:1, title:'Token 与上下文窗口', tags:['核心','面试'],
+          content:`<p>模型不读"字"，读 <b>Token</b>：中文约 1 汉字 ≈ 1~2 Token，英文 1 词 ≈ 1 Token。</p>
+          <p class="kbox"><b>Token 是计费单位 + 延迟单位 + 容量单位</b>：
+          ① 计费：按输入+输出 Token 数收费；
+          ② 延迟：生成是逐 Token 吐出，输出越长越慢；
+          ③ 容量：上下文窗口（context window）= 一次能"看见"的 Token 上限。</p>
+          <p>客户报"慢"第一步换算：<b>这个请求多少输入 Token、多少输出 Token？</b>报"记不住之前的对话"→ 上下文窗口截断/裁剪了历史。</p>`},
+        { id:2, title:'推理 vs 训练/微调', tags:['核心','面试'],
+          content:`<table class="tbl"><colgroup><col style="width:24%"><col style="width:76%"></colgroup>
+          <tr><th></th><th>说明</th></tr>
+          <tr><td>预训练</td><td>海量数据学通用能力（算法团队的事）</td></tr>
+          <tr><td>微调 SFT</td><td>用标注数据教模型"说话风格/领域知识"（LoRA 只调一小部分参数，成本低）</td></tr>
+          <tr><td>推理 Inference</td><td><b>加载模型 → 收请求 → 生成回答</b>（技术支持的主战场：部署/扩容/排障/调优）</td></tr></table>
+          <p class="kbox"><b>面试诚实原则：</b>JD 写"掌握 SFT/LoRA"——你能讲清"LoRA 是冻结原参数、只训练低秩增量、省显存省算力"即可，别吹做过训练。技术支持岗核心考推理链路。</p>`},
+        { id:3, title:'RAG 与 Agent', tags:['核心','面试'],
+          content:`<p><b>RAG（检索增强生成）</b>：模型不知道的知识，先检索再回答——解决"模型知识过期/幻觉"。</p>
+          <div class="code-block">用户提问
+  ↓
+① 检索：知识库向量化 → 找最相关的几段（向量数据库）
+  ↓
+② 增强：把"问题 + 检索到的资料"拼进 prompt
+  ↓
+③ 生成：模型基于资料回答（可溯源）
+# 客户报"回答不专业/瞎编" → 大概率是知识库覆盖不足或检索不到 → 查知识库质量</div>
+          <p><b>Agent（智能体）</b>：大模型 + 工具（API/代码/搜索）+ 自主规划循环。HiAgent 就是帮企业搭建这种智能体的平台。</p>`}
+      ]},
+      { title:'推理部署', points:[
+        { id:4, title:'GPU 与显存（OOM 根源）', tags:['核心','面试'],
+          content:`<p>模型权重<b>必须整块塞进 GPU 显存（VRAM）</b>：7B 模型约 14GB，70B 约 140GB。显存决定"能不能跑 + 同时服务多少人"。</p>
+          <div class="code-block"># K8s 里 GPU 是独立资源单位（不再是 CPU/memory）
+resources:
+  requests: { nvidia.com/gpu: 1 }
+  limits:   { nvidia.com/gpu: 1 }
+
+# 排查显存
+nvidia-smi                # 显存占用 / 进程
+kubectl describe pod xxx  # 看 GPU 分配与事件</div>
+          <p><b>OOM 三连问</b>（面试场景题）：并发上来显存爆了？→ 限制并发（vLLM 的 max-num-seqs）/ 换更小模型 / 加卡；长上下文撑爆？→ 裁剪上下文 / 调 KV cache 策略；单请求超长输出？→ 设 max-tokens 上限。</p>`},
+        { id:5, title:'推理服务架构（vLLM）', tags:['核心'],
+          content:`<div class="code-block"># 部署形态（和你熟的 nginx 同构！）
+客户应用 → API 网关/SSE 流式 → 推理 Pod（vLLM + 模型权重，GPU 节点）
+                                        ↓ 读
+                                  模型权重（挂载盘/缓存）
+                                        ↓ 可选
+                                  知识库向量库（RAG）
+
+# 核心指标
+TTFT（首 Token 延迟）：请求进去到第一个字出来     ← 用户感知"半天不出字"
+tokens/s（生成速度）：每秒吐多少 Token           ← 用户感知"打字慢"
+并发（QPS / 并发会话数）：显存和算力共同决定</div>
+          <p class="kbox"><b>与 K8s 的对应：</b>vLLM = 你的 nginx 镜像，模型权重 = PV 挂载，GPU 节点 = 有 GPU 的节点池，HPA 扩容 = 按 GPU 利用率/队列长度伸缩。你的 K8s 经验直接迁移。</p>`},
+        { id:6, title:'模型幻觉与知识库', tags:['面试'],
+          content:`<p><b>幻觉（Hallucination）</b>：模型一本正经地胡说。客户报"回答不专业/乱讲"时排查顺序：</p>
+          <div class="code-block">① 是 RAG 检索没命中？→ 查知识库文档覆盖度、切分方式、相似度阈值
+② 是模型硬编？→ 查 prompt 是否要求"只基于资料回答"
+③ 是资料本身过期？→ 查知识库更新频率
+④ 系统提示词配置：温度（temperature）太高会加大编造概率</div>
+          <p>这是 HiAgent JD 第 5 条的实战版："把'回答不专业'拆解为知识库覆盖度不足"。</p>`}
+      ]},
+      { title:'HiAgent 产品', points:[
+        { id:7, title:'HiAgent 是什么', tags:['核心','面试'],
+          content:`<p><b>火山引擎 HiAgent = 企业级 Agent 平台（企业 AI 中台）</b>，客户买它来搭建生产级智能体。</p>
+          <table class="tbl"><colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+          <tr><th>能力</th><th>说明</th></tr>
+          <tr><td>智能体开发</td><td>高/低代码搭建：知识库、工作流、插件/工具、多模型接入</td></tr>
+          <tr><td>全生命周期</td><td>开发 → 评测 → 观测 → 优化（Agent DevOps）</td></tr>
+          <tr><td>模型服务</td><td>接入豆包全系列模型，支持推理、精调</td></tr>
+          <tr><td>私有化部署</td><td>支持私有化安全集成（→ 客户现场部署 = 技术支持的工作）</td></tr>
+          <tr><td>治理</td><td>权限、审计、监控（企业级必备）</td></tr></table>
+          <p>典型客户案例：浦发银行全行智能体平台（1000+ 智能体）、客服营销智能体（累计调用 4000 万次）——银行/金融是 HiAgent 主力场景。</p>`},
+        { id:8, title:'智能体的构成', tags:['核心'],
+          content:`<p>一个生产级智能体 = <b>大模型（大脑）+ 知识库（记忆）+ 工具（手脚）+ 工作流（流程）</b>。</p>
+          <div class="code-block"># 客户的一句话需求 → 技术支持翻译成技术方案
+"我的客服回答不专业"
+  ↓ 拆解
+知识库覆盖不足？→ 扩充 FAQ/产品文档
+检索不准？→ 调相似度阈值 / 优化文档切分
+模型能力不够？→ 换更强模型
+流程不对？→ 加人工兜底/转人工规则
+
+# 这就是 JD 里"把客户模糊需求转化为技术方案"的能力</div>
+          <p>面试答法：给一个你拆解需求的例子（客服、知识问答、流程自动化都行），展示"现象 → 假设 → 验证 → 方案"的链路。</p>`}
+      ]},
+      { title:'技术支持方法论', points:[
+        { id:9, title:'先问三件事，再看指标', tags:['核心','面试'],
+          content:`<p>客户报"模型好慢/好差"时，<b>先问客户能回答的问题，不要急着翻日志</b>：</p>
+          <table class="tbl"><colgroup><col style="width:30%"><col style="width:70%"></colgroup>
+          <tr><th>问题</th><th>区分什么</th></tr>
+          <tr><td>① "慢"是哪种慢？</td><td>半天不出第一个字（TTFT：排队/冷启动/网络）vs 开始打字但转圈久（生成速度：显存/模型）</td></tr>
+          <tr><td>② 全都慢还是部分场景慢？</td><td>全局资源瓶颈 vs 特定上下文超长/特定模型配置</td></tr>
+          <tr><td>③ 最近改过什么？</td><td>变更即根因：prompt 加长、并发上来、模型版本切换、接入方式变化</td></tr></table>
+          <p>拿到回答后再看指标：Token 数、TTFT、tokens/s、错误率、队列长度、显存。</p>`},
+        { id:10, title:'五大典型故障场景', tags:['面试'],
+          content:`<table class="tbl"><colgroup><col style="width:26%"><col style="width:74%"></colgroup>
+          <tr><th>客户报障</th><th>排查链路</th></tr>
+          <tr><td>回答慢</td><td>TTFT vs 生成速度 → 并发/队列/显存/网络 → 变更回溯</td></tr>
+          <tr><td>回答不专业/幻觉</td><td>RAG 检索命中 → 知识库覆盖/切分/阈值 → prompt → 温度</td></tr>
+          <tr><td>记不住对话</td><td>上下文窗口截断 → 裁剪策略/会话管理 → 客户端是否传历史</td></tr>
+          <tr><td>偶发报错/超时</td><td>错误码归类 → 限流（RPM/TPM 超限）→ 上游超时 → 重试策略</td></tr>
+          <tr><td>私有化部署失败</td><td>环境核对（GPU 驱动/显存）→ 镜像拉取（内网仓库）→ K8s 调度（GPU 标签）</td></tr></table>
+          <p>通用套路：<b>先复现 → 收信息（时间/范围/变更）→ 分层排查 → 根因 → 预防</b>。和你 Linux 的七层排查法同一套思维。</p>`},
+        { id:11, title:'面试亮点：你的私有化实战', tags:['面试','实战'],
+          content:`<p class="kbox"><b>你的差异化卖点（面试主动讲）：</b>三节点 K8s 裸集群（kubeadm + containerd + flannel）从零搭起，就是一次完整的<b>私有化部署</b>。真实踩过的坑全都能讲成案例：</p>
+          <div class="code-block">· 国内镜像拉取超时 → daocloud 加速（HiAgent 私有化同样会遇到内网镜像问题）
+· 节点重启后 flannel 崩溃 → 内核模块持久化
+· 磁盘白扩 → growpart/resize2fs 在线扩容
+· 受限 kubeconfig 证书脱敏 → --raw 修复
+· 三节点全宕 → 重启自愈，etcd 数据完好</div>
+          <p>把这些组织成"现象→定位→根因→修复"的案例讲出来，就是最好的私有化部署经验证明。</p>`}
+      ]}
+    ]
+  },
+  /* @@MODULES_NEXT@@ */
+];
+
+const QUIZ = [
+  { q:'实时跟踪日志文件新增内容，用哪个命令？', options:['cat file','tail -f file','less file','head file'], answer:1, module:1,
+    explain:'tail -f 持续输出文件新追加的行（Ctrl+C 退出），排障看日志标配。cat 是全文输出、less 分页浏览、head 看开头。' },
+  { q:'下面哪条命令属于运维高危操作，生产环境必须慎用？', options:['ls -l','rm -rf /opt/app','grep error app.log','tail -f app.log'], answer:1, module:1,
+    explain:'rm -rf 递归强制删除，路径写错（如 rm -rf / 或 /var/lib 手滑）会删掉系统或数据。删除前先 ls 确认路径，或先用 mv 到临时目录。' },
+  { q:'TCP 三次握手中，第二次报文是？', options:['SYN','SYN+ACK','ACK','FIN'], answer:1, module:1,
+    explain:'握手过程：①客户端发 SYN → ②服务端回 SYN+ACK（确认收到 + 请求建立）→ ③客户端回 ACK。第二次必须同时带 SYN 和 ACK。' },
+  { q:'TCP 四次挥手中，关闭连接由谁先发起？', options:['谁都可以（主动关闭方）','必须是服务端','必须是客户端','由中间设备发起'], answer:0, module:1,
+    explain:'任何一方都可以主动发起 FIN（主动关闭方）。被动方先回 ACK，处理完数据再回 FIN——所以挥手要四次（ACK 与 FIN 不能合并）。' },
+  { q:'Nginx 返回 502 Bad Gateway 通常意味着？', options:['客户端请求格式错误','上游后端服务不可达或出错','请求资源不存在','未认证'], answer:1, module:1,
+    explain:'502 = 网关拿到了上游的无效响应（上游挂了/没监听/超时返回错误）。先查后端服务健康与 Nginx 到后端的连通性。' },
+  { q:'dig example.com 查不到解析，但 getent hosts example.com 有结果，说明？', options:['DNS 服务器故障','本地 /etc/hosts 有记录且优先','域名不存在','网络断开'], answer:1, module:1,
+    explain:'getent 走系统解析器（含 /etc/hosts），dig 直接查 DNS。hosts 优先于 DNS，所以 hosts 有记录时系统解析成功、DNS 查不到是正常的——排障先分清是哪条链路。' },
+  { q:'防火墙的"五元组"不包括？', options:['源 IP','目的端口','协议','HTTP 路径'], answer:3, module:1,
+    explain:'五元组 = 源 IP、源端口、目的 IP、目的端口、协议。HTTP 路径是七层内容，防火墙（四层）看不到，WAF 才看。' },
+  { q:'容器实现进程隔离和资源限制分别靠什么？', options:['Namespace / Cgroups','Cgroups / Namespace','UnionFS / Namespace','Cgroups / UnionFS'], answer:0, module:2,
+    explain:'Namespace 隔离视图（PID/网络/挂载），Cgroups 限制资源（CPU/内存）。容器 = 进程隔离 + 资源限制，共享宿主机内核。' },
+  { q:'K8s 1.24+ 节点上镜像拉取失败，应该检查哪个配置？', options:['Docker daemon 的 registry-mirrors','/etc/containerd/certs.d/ 下的 hosts.toml','/etc/docker/daemon.json','kubelet 的 --image 参数'], answer:1, module:2,
+    explain:'K8s 1.24+ 用 containerd 直接作为运行时，不再走 Docker daemon。镜像加速配置在 /etc/containerd/certs.d/<仓库>/hosts.toml。' },
+  { q:'国内拉取镜像最稳的加速方式是？', options:['Docker Hub 直连','配置 daocloud 镜像源到 containerd','用 VPN','下载镜像包手工导入'], answer:1, module:2,
+    explain:'实战验证：containerd 的 hosts.toml 配置 docker.m.daocloud.io / k8s.m.daocloud.io 加速，重启 containerd 后 ImagePullBackOff 全部恢复。' },
+  { q:'镜像分层的最大好处是？', options:['运行更快','相同层可复用、节省存储和带宽','镜像更安全','支持更多 CPU 架构'], answer:1, module:2,
+    explain:'每层有 hash，相同层可复用：多个镜像共享基础层，拉取只拉差异层——省存储、省带宽、加快部署。' },
+  { q:'K8s 中最小调度单元是？', options:['容器','Pod','Deployment','Node'], answer:1, module:4,
+    explain:'Pod 是一个或多个共享网络/存储的容器集合，是 K8s 的调度单位。Deployment 管理 Pod，不是调度单元。' },
+  { q:'Deployment 适合管理哪类应用？', options:['有状态应用','无状态应用','数据库','etcd'], answer:1, module:4,
+    explain:'Deployment 管理无状态应用（nginx、API 服务）：滚动更新、回滚、扩缩容。有状态用 StatefulSet（稳定身份+稳定存储）。' },
+  { q:'ResourceQuota 在什么时机拦截超限请求？', options:['Pod 运行时','Pod 创建时（API 记账）','节点调度时','Pod 删除时'], answer:1, module:4,
+    explain:'配额是"创建时记账"：第 7 个 Pod 的创建请求直接报 forbidden: exceeded quota，根本不会进入调度。实战：pods 6/6 时第 7 个被拒。' },
+  { q:'LimitRange 的校验发生在哪个环节？', options:['运行时监控','写入 etcd 前的准入校验','调度器','kubelet'], answer:1, module:4,
+    explain:'LimitRange 是准入控制（Admission）：对象写入前校验。2Gi 超 max 1Gi 直接拒绝创建。与 Quota（记账型）是两层防线。' },
+  { q:'livenessProbe 失败会导致？', options:['从 Service 摘除','容器被重启','节点被驱逐','Pod 被删除'], answer:1, module:4,
+    explain:'liveness 失败 → 重启容器（容器卡死但进程在）；readiness 失败 → 从 Service 摘除（不重启）。startupProbe 给慢启动应用缓冲。' },
+  { q:'容器内存超过 limits 会发生什么？', options:['CPU 限流','容器被 OOMKill','自动扩容','只记录日志'], answer:1, module:4,
+    explain:'内存不可压缩：超 limits 被内核 OOMKill（常见 RESTARTS 飙升）。CPU 可压缩：超限只被限流（进程卡但活着）。' },
+  { q:'滚动更新中 maxSurge 控制什么？', options:['最多同时不可用多少个','最多比期望多创建多少个','最大回滚版本数','最大副本数'], answer:1, module:4,
+    explain:'maxSurge 允许额外创建的 Pod 数（默认 25%），先起新的再杀旧的；maxUnavailable 允许最多多少个不可用。这就是"先建后杀"策略。' },
+  { q:'Flannel 与 Calico 的关键区别是？', options:['Flannel 性能更好','Flannel 不支持 NetworkPolicy','Calico 不支持 Overlay','Flannel 支持 BGP'], answer:1, module:5,
+    explain:'Flannel 是纯 Overlay 且不支持 NetworkPolicy（网络策略需要 iptables/BPF 支持）；Calico 原生支持，生产首选。' },
+  { q:'ClusterIP 类型的 Service 谁能访问？', options:['集群外用户','仅集群内部','仅同一节点','公网'], answer:1, module:5,
+    explain:'ClusterIP 是集群内虚拟 IP，只在集群内部可达（Pod 间调用）。外部访问用 NodePort 或 LoadBalancer/Ingress。' },
+  { q:'kubectl get endpoints 显示的是？', options:['Pod 的 DNS 记录','Service 实际挂载的后端 Pod IP:Port 列表','节点 IP','镜像仓库地址'], answer:1, module:5,
+    explain:'endpoints = Service 通过 selector 匹配到的 Pod IP:Port 列表，是流量转发的真实目标。Pod 挂了会从 endpoints 摘除。' },
+  { q:'Istio 中数据面（Sidecar）由什么实现？', options:['Istiod','Envoy','Prometheus','CoreDNS'], answer:1, module:5,
+    explain:'Istio 控制面 Istiod 管理规则，数据面 Envoy Sidecar 实际处理流量（熔断、限流、mTLS）。' },
+  { q:'PV、PVC、StorageClass 的关系是？', options:['三者独立无关联','PVC 申请存储，PV 是实际资源，StorageClass 动态供应','PV 申请 PVC','StorageClass 是备份工具'], answer:1, module:6,
+    explain:'PVC 是"我要 5Gi"的申请单，PV 是实际存储资源，StorageClass 让 PVC 申请时自动创建 PV（动态供应）。' },
+  { q:'RBAC 中 RoleBinding 的作用是？', options:['定义权限规则','把 Role 授予某个身份（绑定）','创建账号','限制命名空间'], answer:1, module:6,
+    explain:'Role 定义"能干什么"，RoleBinding 决定"给谁"（把 Role 绑定到 ServiceAccount/User）。权限 = 资源 × 操作 × 命名空间。' },
+  { q:'PSA restricted 策略下，nginx 官方镜像通常遇到什么问题？', options:['镜像太大','默认以 root 运行被拒绝','无法拉取','CPU 超限'], answer:1, module:6,
+    explain:'restricted 强制非 root + drop ALL capabilities，而 nginx 官方镜像默认 root——需要改 securityContext 或换非 root 镜像。' },
+  { q:'etcd 备份正确的命令族是？', options:['mysqldump','etcdctl snapshot save','kubectl backup','cp -r /var/lib/etcd'], answer:1, module:6,
+    explain:'官方方式：etcdctl snapshot save（带证书参数），并用 snapshot status 验证。直接拷贝数据目录不安全（不一致快照）。' },
+  { q:'Prometheus 采集指标的模式是？', options:['Push 推送','Pull 拉取','订阅','广播'], answer:1, module:7,
+    explain:'Prometheus 是 Pull 模型：主动定时去 exporter 拉指标。这决定了它天然适配 K8s（服务发现目标）。' },
+  { q:'服务（API）层监控应该用哪套方法？', options:['USE','RED','SRE 黄金信号','P95'], answer:1, module:7,
+    explain:'RED：Rate 速率、Errors 错误、Duration 延迟（服务层）；USE 用于基础设施。面试两层都要能说。' },
+  { q:'Loki 相比 ELK 的核心优势是？', options:['索引更快','只索引元数据、存储成本低','查询语法更丰富','自带告警'], answer:1, module:7,
+    explain:'Loki 只索引标签/元数据，不索引日志内容——存储成本大幅降低，适合云原生小集群。' },
+  { q:'MySQL 主从复制基于什么日志？', options:['Redo Log','Binlog','Error Log','Undo Log'], answer:1, module:8,
+    explain:'主库写 Binlog，从库 IO 线程拉取 + SQL 线程回放。Redo/Undo 是 InnoDB 崩溃恢复用的，与复制无关。' },
+  { q:'缓存穿透（查询不存在的 key）的防御手段是？', options:['加大缓存容量','布隆过滤器 / 空值缓存','设置更短 TTL','多级缓存'], answer:1, module:8,
+    explain:'穿透=查不存在的数据每次都打到 DB。布隆过滤器挡掉不存在的 key，或对空结果也做短期缓存。' },
+  { q:'Kafka 高吞吐的核心原因不包括？', options:['顺序写盘','分区并行','批量与零拷贝','内存索引全表'], answer:3, module:8,
+    explain:'顺序写盘 + 分区并行 + 批量/零拷贝是三大原因。"内存索引全表"不是（Kafka 不靠这个）。' },
+  { q:'Ansible 无需在目标机装 Agent，是因为？', options:['基于 SSH 通信','基于 HTTP','基于 UDP 广播','基于共享目录'], answer:0, module:9,
+    explain:'Ansible 基于 SSH 执行命令，零 Agent——这是它轻量、上手快的原因。SaltStack 有 Agent 所以更快。' },
+  { q:'Terraform 里销毁全部资源的命令是？', options:['terraform delete','terraform destroy','terraform rm','terraform plan -destroy'], answer:1, module:9,
+    explain:'destroy 按 state 删除全部资源。云上实验务必养成"结束即 destroy"的习惯，防扣费。' },
+  { q:'GitOps 的核心思想是？', options:['CI 自动部署','Git 仓库是唯一真相，集群向 Git 对齐','配置中心下发','定时任务同步'], answer:1, module:9,
+    explain:'GitOps：Git 里的 manifests 是唯一真相，ArgoCD 等工具把集群状态持续同步到 Git 声明——回滚=git revert，审计=git log。' },
+  { q:'云上数据库通常放在哪里？', options:['公网子网','私网子网（仅应用可访问）','对象存储里','负载均衡后面'], answer:1, module:10,
+    explain:'数据库放私网子网 + 安全组只放行应用网段，不暴露公网——安全且省钱（无公网流量费）。' },
+  { q:'IAM 的核心原则是？', options:['主账号直接使用','最小权限','密码最长','全部放行后审计'], answer:1, module:10,
+    explain:'最小权限：每个身份只给完成任务所需的最小权限。主账号 AK 泄漏是云上第一大事故源。' },
+  { q:'云上开实验资源前的第一件事是？', options:['创建 VPC','设预算告警 + MFA','买带宽','创建镜像'], answer:1, module:10,
+    explain:'先设预算告警（80%/100% 提醒）+ 开启 MFA，再开资源。否则忘释放的资源会持续扣费甚至被盗刷。' },
+  { q:'大模型"回答慢"时，TTFT 指什么？', options:['生成总时长','首 Token 延迟（第一个字出来的时间）','每秒生成 Token 数','请求排队时间'], answer:1, module:11,
+    explain:'TTFT（Time To First Token）= 首 Token 延迟，对应"半天不出字"；tokens/s 对应"打字慢"。两个瓶颈不同。' },
+  { q:'RAG（检索增强生成）主要解决什么问题？', options:['模型算力不足','模型知识过期与幻觉','并发不够','显存不足'], answer:1, module:11,
+    explain:'RAG 先检索知识库再生成：解决模型不知道最新/私有知识、以及一本正经编造（幻觉）的问题，回答可溯源。' },
+  { q:'推理服务并发上来后显存爆了，合理的排查顺序是？', options:['先看 CPU','先看 GPU 显存占用与并发限制（max-num-seqs）','先重启','先换模型'], answer:1, module:11,
+    explain:'并发→显存：看 nvidia-smi 显存占用、推理服务并发上限配置、是否可限流或扩容 GPU。CPU 不是推理瓶颈。' },
+  { q:'客户报"回答不专业、瞎编"，技术支持第一步该查？', options:['模型版本','知识库覆盖度与检索命中','网络延迟','API Key'], answer:1, module:11,
+    explain:'先查 RAG 链路：知识库文档覆盖、切分质量、检索相似度阈值——"回答不专业"最常见根因是知识库问题，不是模型问题。' },
+  { q:'火山引擎 HiAgent 的产品定位是？', options:['云服务器','企业级智能体（Agent）平台','对象存储','数据库服务'], answer:1, module:11,
+    explain:'HiAgent 是企业 AI 中台：智能体开发、运行、观测、治理全生命周期，支持私有化部署——技术支持服务的就是这类平台的客户。' },
+  { q:'客户说"模型记不住之前的对话"，最可能的原因是？', options:['网络断开','上下文窗口超限导致历史被裁剪','模型没训练好','API Key 过期'], answer:1, module:11,
+    explain:'记不住对话 = 上下文窗口满/超限，历史被裁剪或丢弃。查客户端是否传全历史、会话管理的裁剪策略、窗口配置。' },
+  { q:'kubeadm 初始化后节点一直 NotReady，最常见原因是？', options:['内存不足','CNI 网络插件没装','swap 没关','镜像拉取失败'], answer:1, module:3,
+    explain:'NotReady 绝大多数是 CNI（flannel/Calico）没装：节点间 Pod 网络不通，kubelet 报 readiness 失败。coredns 一直 Pending 也是同一原因。' },
+  { q:'节点重启后 flannel Pod CrashLoopBackOff，第一步排查？', options:['重启所有节点','查内核模块 br_netfilter 是否加载','重装 containerd','删掉 flannel 重建'], answer:1, module:3,
+    explain:'实战根因：br_netfilter 只 modprobe 了一次没持久化，重启后丢失。先 lsmod | grep br_netfilter 确认，修复是写入 /etc/modules-load.d/。' },
+  { q:'Deployment 发布新版本后出问题，最快的恢复手段是？', options:['改代码重新发布','kubectl rollout undo','删掉 Deployment 重建','回滚镜像标签'], answer:1, module:3,
+    explain:'rollout undo 直接回滚到上一个版本（秒级，服务不中断），比修代码重发快一个量级。Deployment 自带版本历史。' },
+  { q:'虚拟机磁盘在线扩容时，growpart 和 resize2fs 分别负责？', options:['扩文件系统/扩分区','扩分区/扩文件系统','扩内存/扩磁盘','扩分区/扩内存'], answer:1, module:3,
+    explain:'growpart 扩展分区表，resize2fs 扩展文件系统到新空间，两步配合才能让 df 看到新容量（xfs 用 xfs_growfs）。' },
+  { q:'CI（持续集成）主要负责什么？', options:['部署到生产','自动构建 + 测试，产出可运行产物','监控告警','管理服务器'], answer:1, module:9,
+    explain:'CI 在代码合并后自动构建+测试（编译、单测、镜像构建、扫描），产出"能跑的产物"。CD 才负责部署上线。' },
+  { q:'金丝雀发布的核心思路是？', options:['两套环境整体切换','先放一小部分流量给新版本观察再逐步放量','新老副本交替滚动','停服更新'], answer:1, module:9,
+    explain:'金丝雀=先 5%-10% 流量试新版本，无异常逐步放量，异常即回滚——最稳妥的灰度发布。蓝绿才是两套环境切换，滚动是新老交替。' },
+  { q:'K8s Deployment 默认的发布策略是？', options:['蓝绿','金丝雀','滚动更新（先建后杀）','重建（先删后建）'], answer:2, module:9,
+    explain:'Deployment 默认滚动更新：新 Pod 就绪才杀旧的（maxSurge/maxUnavailable 控制节奏），服务不中断。' }
+];
+
+/* =========================================================
+   状态管理（localStorage 持久化）
+   ========================================================= */
+const LS_KEY = 'ops-learning-hub-v1';
+const state = {
+  done:new Set(), star:new Set(), mode:'browse', idx:0, loop:0,
+  quizOrder:[], quizPos:0, quizLocked:false
+};
+function loadState(){
+  try{
+    const raw=localStorage.getItem(LS_KEY); if(!raw) return;
+    const d=JSON.parse(raw);
+    state.done=new Set(d.done||[]); state.star=new Set(d.star||[]);
+    state.idx=d.idx||0; state.loop=d.loop||0;
+  }catch(e){}
+}
+function saveState(){
+  try{
+    localStorage.setItem(LS_KEY,JSON.stringify({done:[...state.done],star:[...state.star],idx:state.idx,loop:state.loop}));
+  }catch(e){}
+}
+
+/* =========================================================
+   渲染
+   ========================================================= */
+const $=s=>document.querySelector(s);
+const main=$('#main');
+let searchKw='';
+
+function renderNav(){
+  const nav=$('#nav');
+  nav.innerHTML=MODULES.map((m,i)=>{
+    const cls=['nav-item',i===state.idx?'active':'',state.done.has(i)?'done':''].join(' ');
+    const cnt=m.sections.reduce((a,s)=>a+s.points.length,0);
+    return `<button class="${cls}" data-i="${i}" title="${m.subtitle}">
+      <span class="num">${ICONS[m.icon]}</span>
+      <span class="nm">${m.title}</span>
+      <span class="st">${state.done.has(i)?'✔':cnt+'点'}</span>
+    </button>`;
+  }).join('');
+}
+
+function updateStats(){
+  const rate=Math.round(state.done.size/MODULES.length*100);
+  $('#st-mastery').textContent=rate+'%';
+  $('#st-done').textContent=state.done.size+'/'+MODULES.length;
+  $('#st-star').textContent=state.star.size;
+  $('#st-loop').textContent=state.loop;
+  const bar=$('#st-bar');
+  bar.style.width=rate+'%';
+  bar.classList.toggle('green',rate>=50);
+}
+
+function renderModule(i,into){
+  const m=MODULES[i];
+  let html=`<div class="topline">
+      <div class="crumb">MODULE ${String(i+1).padStart(2,'0')} / ${MODULES.length} · <b>${m.title}</b></div>
+      <div class="modebar" style="padding:3px">
+        <button class="mode-btn ${state.mode==='browse'?'active':''}" data-mode="browse">浏览</button>
+        <button class="mode-btn ${state.mode==='loop'?'active':''}" data-mode="loop">循环</button>
+        <button class="mode-btn ${state.mode==='quiz'?'active':''}" data-mode="quiz">自测</button>
+      </div>
+    </div>
+    <div class="module-title"><span class="mico">${ICONS[m.icon]}</span>${m.title}</div>
+    <div class="module-sub">${m.subtitle}</div>`;
+  m.sections.forEach(s=>{
+    html+=`<div class="sec-title">${s.title}</div>`;
+    s.points.forEach(p=>{
+      const tags=(p.tags||[]).map(t=>{
+        const map={重要:'important',关键:'important',核心:'important',实战:'practice',面试:'interview',高危:'critical'};
+        const cls=map[t]||'';
+        return `<span class="tag ${cls}">${t}</span>`;
+      }).join('');
+      html+=`<div class="point" id="pt-${i}-${p.id}">
+        <div class="point-h">
+          <div class="pt">${p.title}</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${tags}
+            <button class="btn-star ${state.star.has(i+':'+p.id)?'on':''}" data-star="${i}:${p.id}" title="收藏">${state.star.has(i+':'+p.id)?'★':'☆'}</button>
+          </div>
+        </div>
+        <div class="point-c">${p.content}</div>
+      </div>`;
+    });
+  });
+  html+=`<div class="controls">
+      <button class="btn btn-prev" id="btn-prev" ${i===0?'disabled':''}>← 上一模块</button>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="hint">${state.done.has(i)?'已掌握':'未掌握'}</span>
+        <button class="btn btn-done ${state.done.has(i)?'completed':''}" id="btn-done">${state.done.has(i)?'✔ 已完成':'标记为已掌握'}</button>
+        <button class="btn btn-next" id="btn-next" ${i===MODULES.length-1?'disabled':''}>下一模块 →</button>
+      </div>
+    </div>`;
+  main.innerHTML=html;
+  bindModule(i);
+}
+
+function bindModule(i){
+  $('#btn-prev').onclick=()=>{state.idx=Math.max(0,i-1);saveState();renderNav();renderModule(state.idx)};
+  $('#btn-next').onclick=()=>{
+    if(i<MODULES.length-1){state.idx=i+1;saveState();renderNav();renderModule(state.idx);}
+    else{state.loop++;state.idx=0;saveState();renderNav();renderModule(0);toast('完成一轮，开始第 '+(state.loop+1)+' 轮');}
+  };
+  $('#btn-done').onclick=()=>{
+    if(state.done.has(i)){state.done.delete(i);toast('已取消标记');}
+    else{state.done.add(i);toast('模块标记为已掌握');}
+    saveState();renderNav();updateStats();renderModule(i);
+  };
+}
+
+/* =========================================================
+   搜索
+   ========================================================= */
+function doSearch(kw){
+  kw=kw.trim().toLowerCase();
+  if(!kw){renderModule(state.idx);return;}
+  let hits=[];
+  MODULES.forEach((m,mi)=>{
+    m.sections.forEach(s=>{
+      s.points.forEach(p=>{
+        const hay=(p.title+' '+stripHtml(p.content)).toLowerCase();
+        if(hay.includes(kw)) hits.push({mi,mod:m.title,p});
+      });
+    });
+  });
+  if(hits.length===0){
+    main.innerHTML=`<div class="empty"><div class="big">NO HITS</div>在 ${MODULES.length} 个模块中未找到「${kw}」<br>换个关键词试试（如：RBAC、Token、DNS）</div>`;
+    return;
+  }
+  const esc=kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const re=new RegExp('('+esc+')','gi');
+  main.innerHTML=`<div class="topline"><div class="crumb">SEARCH · <b>${hits.length}</b> 条结果</div></div>`+
+    hits.slice(0,80).map(h=>{
+      const snip=stripHtml(h.p.content).slice(0,90);
+      return `<div class="search-hit" data-goto="${h.mi}:${h.p.id}">
+        <div class="sh-mod">${String(h.mi+1).padStart(2,'0')} · ${h.mod}</div>
+        <div class="sh-title">${h.p.title.replace(re,'<mark>$1</mark>')}</div>
+        <div class="sh-snip">${snip.replace(re,'<mark>$1</mark>')}</div>
+      </div>`;
+    }).join('');
+  main.querySelectorAll('.search-hit').forEach(el=>{
+    el.onclick=()=>{
+      const [mi,pid]=el.dataset.goto.split(':');
+      state.idx=+mi;saveState();renderNav();renderModule(+mi);
+      setTimeout(()=>{const t=document.getElementById('pt-'+mi+'-'+pid);if(t){t.scrollIntoView({behavior:'smooth',block:'center'});t.style.outline='2px solid var(--amber)';setTimeout(()=>t.style.outline='',2500);}},60);
+    };
+  });
+}
+
+function stripHtml(html){
+  const d=document.createElement('div');d.innerHTML=html;return d.textContent||'';
+}
+
+/* =========================================================
+   自测
+   ========================================================= */
+function initQuiz(shuffle){
+  state.quizOrder=QUIZ.map((_,i)=>i);
+  if(shuffle) state.quizOrder.sort(()=>Math.random()-0.5);
+  state.quizPos=0;state.quizLocked=false;state.quizCorrect=0;
+  renderQuiz();
+}
+function renderQuiz(){
+  const total=QUIZ.length;
+  if(state.quizPos>=total){
+    const pct=Math.round(state.quizCorrect/total*100);
+    main.innerHTML=`<div class="quiz-end">
+      <div class="big">${pct}%</div>
+      <div class="note">本轮 ${total} 题 · 答对 <b style="color:var(--green)">${state.quizCorrect}</b> 题
+        <br>得分 &lt;80% 建议回到对应模块再复习一遍</div>
+      <button class="btn btn-next" id="q-restart">随机抽题再来一轮</button>
+    </div>`;
+    $('#q-restart').onclick=()=>initQuiz(true);
+    return;
+  }
+  const q=QUIZ[state.quizOrder[state.quizPos]];
+  const m=MODULES[q.module-1];
+  main.innerHTML=`<div class="topline"><div class="crumb">QUIZ MODE · <b>${state.quizPos+1}/${total}</b></div>
+    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <span class="quiz-score">得分 <b>${state.quizCorrect}</b>/<span style="color:var(--ink3)">${state.quizPos}</span></span>
+      <button class="btn btn-prev" id="q-prev" ${state.quizPos===0?'disabled':''}>上一题</button>
+      <button class="btn btn-next" id="q-next">下一题 →</button>
+      <button class="btn btn-prev" id="q-random" title="随机抽题">↻ 随机</button>
+    </div></div>
+    <div class="quiz-q"><span class="qmod">${String(q.module).padStart(2,'0')} · ${m.title}</span><br>${q.q}</div>
+    ${q.options.map((o,i)=>`<button class="quiz-opt" data-a="${i}"><span class="opt-key">${String.fromCharCode(65+i)}</span>${o}</button>`).join('')}
+    <div class="quiz-explain" id="q-exp"><b>解析：</b>${q.explain}</div>`;
+  const opts=main.querySelectorAll('.quiz-opt');
+  opts.forEach(b=>{
+    b.onclick=()=>{
+      if(state.quizLocked)return;
+      state.quizLocked=true;
+      const sel=+b.dataset.a;
+      if(sel===q.answer)state.quizCorrect++;
+      const sc=main.querySelector('.quiz-score');
+      if(sc)sc.innerHTML=`得分 <b>${state.quizCorrect}</b>/<span style="color:var(--ink3)">${state.quizPos+1}</span>`;
+      opts.forEach((o,i)=>{
+        o.disabled=true;
+        if(i===q.answer)o.classList.add('correct');
+        if(i===sel&&i!==q.answer)o.classList.add('wrong');
+      });
+      $('#q-exp').classList.add('show');
+    };
+  });
+  $('#q-prev').onclick=()=>{if(state.quizPos>0){state.quizPos--;state.quizLocked=false;renderQuiz();}};
+  $('#q-next').onclick=()=>{if(state.quizPos<total-1){state.quizPos++;state.quizLocked=false;renderQuiz();}};
+  $('#q-random').onclick=()=>initQuiz(true);
+}
+
+/* =========================================================
+   模式切换 / 事件
+   ========================================================= */
+function setMode(mode){
+  state.mode=mode;saveState();
+  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+  if(mode==='browse'){renderModule(state.idx);}
+  else if(mode==='loop'){renderModule(state.idx);}
+  else{initQuiz(true);}
+}
+setMode(state.mode);
+
+$('#nav').addEventListener('click',e=>{
+  const it=e.target.closest('.nav-item');if(!it)return;
+  state.idx=+it.dataset.i;saveState();renderNav();renderModule(state.idx);
+});
+$('#search-input').addEventListener('input',e=>{
+  searchKw=e.target.value;
+  $('#search-clear').classList.toggle('show',!!searchKw);
+  doSearch(searchKw);
+});
+$('#search-clear').onclick=()=>{$('#search-input').value='';searchKw='';$('#search-clear').classList.remove('show');renderModule(state.idx);};
+document.addEventListener('click',e=>{
+  const mb=e.target.closest('.mode-btn');
+  if(mb){setMode(mb.dataset.mode);return;}
+  const st=e.target.closest('[data-star]');
+  if(st){
+    const k=st.dataset.star;
+    if(state.star.has(k)){state.star.delete(k);st.classList.remove('on');st.textContent='☆';toast('取消收藏');}
+    else{state.star.add(k);st.classList.add('on');st.textContent='★';toast('已收藏');}
+    saveState();updateStats();
+  }
+});
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  if(state.mode==='browse'||state.mode==='loop'){
+    if(e.key==='ArrowLeft'){if(state.idx>0){state.idx--;saveState();renderNav();renderModule(state.idx);}}
+    if(e.key==='ArrowRight'){if(state.idx<MODULES.length-1){state.idx++;saveState();renderNav();renderModule(state.idx);}}
+  }
+});
+
+let toastTimer;
+function toast(msg){
+  const t=$('#toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+/* =========================================================
+   启动
+   ========================================================= */
+loadState();
+renderNav();
+updateStats();
+renderModule(state.idx);
+</script>
+</body>
+</html>
