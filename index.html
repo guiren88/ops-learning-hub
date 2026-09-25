@@ -1035,7 +1035,8 @@ rules:
           <tr><td>restricted</td><td>最强：强制非 root、只读根文件系统、seccomp、drop ALL capabilities 等</td></tr></table>
           <div class="code-block">kubectl label ns team-a pod-security.kubernetes.io/enforce=restricted
 kubectl label ns team-a pod-security.kubernetes.io/warn=baseline</div>
-          <p>模式：<b>enforce</b>（拒绝）/ <b>audit</b>（记录）/ <b>warn</b>（警告）。面试点：<b>restricted 下 Nginx 默认镜像跑不起来</b>（官方镜像默认 root），需要改 securityContext 或换非 root 镜像。</p>`},
+          <p>模式：<b>enforce</b>（拒绝）/ <b>audit</b>（记录）/ <b>warn</b>（警告）。面试点：<b>restricted 下 Nginx 默认镜像跑不起来</b>（官方镜像默认 root），需要改 securityContext 或换非 root 镜像。</p>
+          <p class="kbox"><b>实战记录（2026-09-25）：</b>team-a 打 enforce=restricted 后，普通 nginx Pod 被硬拒绝，报错精确列出 4 项违规：allowPrivilegeEscalation / capabilities（需 drop ALL）/ runAsNonRoot / seccompProfile。改用 <span class="kw">runAsUser: 65534 + drop: [ALL] + readOnlyRootFilesystem: true + RuntimeDefault</span> 的 busybox 应用后跑通，exec 验证 uid=nobody(65534)、touch 文件被拒（只读根文件系统生效）。降为 warn 模式后同一违规 Pod 能建但打 Warning——enforce 与 warn 差异直观可见。<b>面试讲法：</b>"PSA 三档策略 + enforce/warn 双模式我都在集群上验证过：restricted 会拦非 root 镜像，合规配置是 runAsNonRoot + drop ALL + seccomp RuntimeDefault；存量 Pod 打标后不受影响，只拦新创建。"</p>`},
         { id:6, title:'镜像安全与 Secret 加密', tags:['重要'],
           content:`<ul>
             <li><b>镜像扫描</b>：trivy / 镜像仓库自带扫描，高危 CVE 阻断上线</li>
