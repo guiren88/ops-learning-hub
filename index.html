@@ -848,6 +848,35 @@ kubectl -n demo rollout restart deployment/nginx-demo   # 不换镜像，重启�
   periodSeconds: 5      # 每 5 秒探一次</div>
           <p>面试高频：<b>探针失败但容器没退，查哪个？</b>——readiness 失败看 Service endpoints（Pod 被摘），liveness 失败看 RESTARTS 计数。</p>`}
       ]},
+      { title:'Helm 应用打包', points:[
+        { id:11, title:'Helm 是什么与三概念', tags:['核心','面试'],
+          content:`<p>K8s 的<b>包管理器</b>（类比 apt/yum）：把一堆 YAML 打包成可复用、可版本化的 Chart。</p>
+          <table class="tbl"><colgroup><col style="width:18%"><col style="width:82%"></colgroup>
+          <tr><th>概念</th><th>说明</th></tr>
+          <tr><td>Chart</td><td>应用包：Chart.yaml + values.yaml + templates/（模板化的 YAML）</td></tr>
+          <tr><td>Release</td><td>Chart 的一次部署实例（同一 Chart 可部署多次 = 多个 Release，互相独立）</td></tr>
+          <tr><td>Repo</td><td>Chart 仓库（bitnami 官方 / 自建），helm install 从 repo 拉包</td></tr></table>
+          <div class="code-block"># 核心命令
+helm create myapp          # 生成标准 chart 骨架
+helm template myapp ./myapp # 只渲染不部署（看 values → YAML 的映射）
+helm install myapp ./myapp -n helm-demo   # 部署
+helm upgrade myapp ./myapp -n helm-demo --set replicaCount=3  # 升级
+helm history myapp -n helm-demo   # Release 版本历史
+helm rollback myapp 1 -n helm-demo  # 回滚到 REV 1
+helm uninstall myapp -n helm-demo   # 一键删干净（vs 手写 YAML 逐条删）</div>
+          <p>模板机制：templates/ 里的 <span class="kw">{{ .Values.replicaCount }}</span> 由 values.yaml 渲染——"改 values 不动模板"就是 Helm 的部署哲学。</p>`},
+        { id:12, title:'Helm 实战记录（2026-09-25）', tags:['实战','面试'],
+          content:`<div class="code-block"># 完整闭环：create → template → install → upgrade → rollback → uninstall
+helm create myapp
+# 改 values.yaml：replicaCount 2、image.tag 1.27-alpine
+helm install myapp ./myapp -n helm-demo   # 2 副本 Running
+# 改 values：replicaCount 3、tag 1.26-alpine
+helm upgrade myapp ./myapp -n helm-demo   # REV 2，3 副本滚动替换
+helm history myapp -n helm-demo           # REV1 superseded / REV2 deployed
+helm rollback myapp 1 -n helm-demo        # REV 3 = Rollback to 1（回滚=新版本，不是回到旧记录）
+helm uninstall myapp -n helm-demo         # Release 连同其资源全部删除</div>
+          <p class="kbox"><b>面试讲法：</b>"Helm 三概念（Chart/Release/Repo）+ 生命周期（install/upgrade/rollback/uninstall）我都在集群上跑过；注意两个细节——helm rollback 是<b>生成新 REVISION</b> 不是回到旧记录；Release 和命名空间绑定，helm-demo 独立 ns 部署避开 PSA restricted（默认模板不满足，正好印证准入实战）。"</p>`}
+      ]},
       { title:'排障速查', points:[
         { id:12, title:'Pod 状态机', tags:['核心','面试'],
           content:`<table class="tbl"><colgroup><col style="width:26%"><col style="width:74%"></colgroup>
@@ -1719,7 +1748,11 @@ const QUIZ = [
   { q:'Zabbix 的采集模式是？', options:['Pull 拉取','Server 主动轮询 Agent（或 Agent 上报）','订阅推送','服务发现自动拉取'], answer:1, module:7,
     explain:'Zabbix 是传统轮询式监控（Server 问 Agent），Prometheus 才是 Pull 拉取模型——这是传统监控 vs 云原生监控的核心区别。' },
   { q:'JD 要求"了解 PostgreSQL/MongoDB"，被问选型时正确的思路是？', options:['用最好的数据库','根据业务模型选：强一致→关系型，schema 多变→MongoDB','谁熟用谁','默认用 Oracle'], answer:1, module:8,
-    explain:'选型三问：数据强一致吗（→MySQL/PG）？schema 频繁变吗（→MongoDB）？数据量多大？没有最好只有最匹配。' }
+    explain:'选型三问：数据强一致吗（→MySQL/PG）？schema 频繁变吗（→MongoDB）？数据量多大？没有最好只有最匹配。' },
+  { q:'Helm 中 Chart / Release / Repo 的关系是？', options:['三者是同一个东西','Chart 是应用包，Release 是 Chart 的一次部署实例，Repo 是 Chart 仓库','Release 是模板，Chart 是实例','Repo 是命名空间'], answer:1, module:4,
+    explain:'Chart=打包好的应用模板；Release=部署后的实例（同一 Chart 可多个 Release）；Repo=Chart 的存放仓库。' },
+  { q:'helm rollback myapp 1 之后，helm history 里会发生什么？', options:['REVISION 1 重新变为 deployed','生成新的 REVISION 3，描述为 Rollback to 1','历史记录被清空','REVISION 2 被删除'], answer:1, module:4,
+    explain:'Helm 回滚是生成新 REVISION（内容等于目标版本），不是回到旧记录——这是 Helm 版本管理的核心机制。' }
 ];
 
 /* =========================================================
