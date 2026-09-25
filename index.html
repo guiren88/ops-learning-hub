@@ -1752,7 +1752,27 @@ const QUIZ = [
   { q:'Helm 中 Chart / Release / Repo 的关系是？', options:['三者是同一个东西','Chart 是应用包，Release 是 Chart 的一次部署实例，Repo 是 Chart 仓库','Release 是模板，Chart 是实例','Repo 是命名空间'], answer:1, module:4,
     explain:'Chart=打包好的应用模板；Release=部署后的实例（同一 Chart 可多个 Release）；Repo=Chart 的存放仓库。' },
   { q:'helm rollback myapp 1 之后，helm history 里会发生什么？', options:['REVISION 1 重新变为 deployed','生成新的 REVISION 3，描述为 Rollback to 1','历史记录被清空','REVISION 2 被删除'], answer:1, module:4,
-    explain:'Helm 回滚是生成新 REVISION（内容等于目标版本），不是回到旧记录——这是 Helm 版本管理的核心机制。' }
+    explain:'Helm 回滚是生成新 REVISION（内容等于目标版本），不是回到旧记录——这是 Helm 版本管理的核心机制。' },
+  { q:'删一个正在被访问的 Pod，会发生什么？（深度题）', options:['Pod 会自动重建，客户端无感知','分情况：Deployment 管的重建且 IP 会变；裸 Pod 不重建；quota 满时重建会 FailedCreate','Pod 不会重建','重建后 IP 保持不变'], answer:1, module:4,
+    explain:'背答案层：会重建。真懂层：Deployment 管理的才重建（期望副本数驱动）；重建后 IP 会变，Service 靠 selector 重新关联 endpoints，客户端长连接可能断；裸 Pod 不重建；quota 顶满时重建会 FailedCreate（你 quota 6/6 实验就是这个场景）。' },
+  { q:'quota 6/6 顶满、业务要扩到 8 副本，正确的处理是？（深度题）', options:['直接把 quota 调大','先看各维度 used/hard：pods 数满但 CPU/内存没用完可临时调 pods 配额，但要评估节点资源——本质是组织策略，要讲 trade-off 和审批流程','让业务排队等待','删掉其他应用腾配额'], answer:1, module:4,
+    explain:'背答案层：调大 quota。真懂层：quota 是组织策略不是技术上限——先看 resourcequota 各维度使用率，pods 满但 CPU/内存有余可以放宽 pods 配额；但节点资源是硬约束，且"找谁审批、影响谁"要讲清楚，这才是运维该有的判断。' },
+  { q:'为什么滚动更新先起新再杀旧？（深度题）', options:['先杀旧再建新更省资源','先起新避免中断，但瞬时双倍资源占用——资源不足时滚动会卡住，此时应调 maxSurge=0 改先删后建','先起新一定更好，没有代价','顺序无所谓'], answer:1, module:4,
+    explain:'背答案层：不中断服务。真懂层：maxSurge/maxUnavailable 是两个独立维度——先起新（Surge）避免中断，代价是瞬时双倍资源；节点资源不够时新 Pod 调度不上、rollout 卡住，这时要反过来调 maxSurge=0 先缩后扩。' },
+  { q:'PSA restricted 拒绝了一个紧急业务 Pod，最快解法是？（深度题）', options:['给 Pod 加完整安全上下文后重新部署','最快是降命名空间标签（enforce=baseline），但这是降低整个 ns 的安全基线——正确顺序是先评估业务是否真需要特权，再改 spec 或换非 root 镜像','让管理员删掉 PSA 标签','换一个镜像仓库'], answer:1, module:6,
+    explain:'背答案层：加 securityContext。真懂层：最快是降 ns 标签，但代价是整个命名空间安全基线被降（责任转嫁他人）；正确顺序是先问"这个应用真的需要 root 吗"——多数不需要，改 spec 或换非 root 镜像即可；warn/audit 模式可先观测再强管控。' },
+  { q:'etcd 已经备份了，什么情况会"备份了也白备份"？（深度题）', options:['etcdctl snapshot save 就足够安全','PKI 证书不备份恢复后 apiserver 起不来；恢复要用新 --data-dir 不能覆盖运行中的 etcd；旧备份恢复到新版本可能不兼容','恢复很简单，restore 一条命令搞定','备份只保数据，Pod 会全部丢失'], answer:1, module:6,
+    explain:'背答案层：会 snapshot save/restore。真懂层：三个坑——①恢复必须用新 data-dir（旧目录还在运行）；②PKI 证书不在 snapshot 里，不备份则 apiserver 起不来；③版本兼容（老备份→新版本可能失败）。备份要"数据+证书"一起才算完整。' },
+  { q:'node1 突然 NotReady，第一件事做什么？（深度题）', options:['马上重启 kubelet','先确认副本分布与服务可用性（判断故障域），再进节点看 kubelet/网络；先恢复服务再定位根因，警惕"重启就好"掩盖根因','直接看 etcd 日志','重新 join 节点'], answer:1, module:3,
+    explain:'背答案层：重启 kubelet。真懂层：先判断影响面（副本是否在其他节点、服务是否可用）→ 再判断故障域（单节点还是网络分区）→ 先恢复再定位。你的 flannel 2531 次重启就是教训：重启掩盖根因，最后发现是 br_netfilter 没持久化。' },
+  { q:'为什么不能用 ping 测 Service 通不通？（深度题）', options:['ClusterIP 是虚拟 IP 所以不通','ClusterIP 是 iptables/ipvs 规则不是真实接口，ICMP 不经过四层代理；正确测法是 curl 端口 + 看 endpoints + 确认 kube-proxy 模式','节点防火墙挡了 ICMP','Service 不支持 ICMP'], answer:1, module:5,
+    explain:'背答案层：虚拟 IP。真懂层：ClusterIP 是规则不是真实接口，ping 走 ICMP 不命中四层 DNAT 规则（iptables 模式下不可达，ipvs 模式行为不同）；测 Service 用 curl 端口、看 endpoints、kubectl get svc 确认 ClusterIP。' },
+  { q:'Helm upgrade 后应用挂了，为什么 rollback 也可能救不回来？（深度题）', options:['rollback 一定能恢复','rollback 只回资源定义不回外部状态：镜像 tag 被覆盖、数据库 schema 不兼容、Secret 被删都救不了；且新 REVISION 若触发同样问题一样挂','rollback 会清空 history','rollback 需要先 uninstall'], answer:1, module:4,
+    explain:'背答案层：回滚即恢复。真懂层：Helm 回滚恢复的是模板渲染出的资源，外部依赖（镜像仓库内容、DB schema、被删的 Secret）不在 Release 里；且回滚生成新 REVISION，若新 REV 同样触发问题（如镜像拉取失败）照样挂。' },
+  { q:'为什么说 K8s 的"自愈"是被动反应、不是预防？（深度题）', options:['K8s 能预防故障','自愈是"检测-重建"的循环：OOM 重启≠问题解决，CrashLoopBackOff 就是自愈失败的显式信号，排障要看为什么反复重建','自愈等于高可用','控制器保证 Pod 永不故障'], answer:1, module:4,
+    explain:'背答案层：控制器不断协调。真懂层：自愈是被动反应——检测到偏离就重建，但重建不等于治愈；CrashLoopBackOff 是"反复重建失败"的报警器，真正的排障是找"为什么每几秒重启一次"的根因。' },
+  { q:'给你一台裸机，怎么评估它适不适合加入 K8s 集群？（深度题）', options:['看 CPU/内存够不够','分层查：硬件基线→内核模块（br_netfilter/overlay/ip_forward）→OS 兼容→swap 关闭→端口冲突（6443/10250）→与 apiserver 双向连通','装好 kubeadm 就能加','看网络带宽大小'], answer:1, module:3,
+    explain:'背答案层：配置够就加。真懂层：评估是分层体检——硬件、内核模块与参数（你 node2 的 br_netfilter 教训：只查了配置没查内核）、OS 版本兼容、swap 状态、端口占用、到 apiserver 的双向连通。' }
 ];
 
 /* =========================================================
