@@ -900,7 +900,18 @@ helm uninstall myapp -n helm-demo         # Release 连同其资源全部删除<
 
 # 案例 4：受限 kubeconfig 报 unable to load root certificates
 → kubectl config view 默认把证书脱敏成 DATA+OMITTED
-→ 必须加 --raw 参数取真实 certificate-authority-data</div>
+→ 必须加 --raw 参数取真实 certificate-authority-data
+
+# 案例 5：NetworkPolicy 跨节点失效（同节点 200、跨节点 000）
+→ 现象：allow-internal 放行本命名空间后，同节点恢复、跨节点仍 000，主机跨节点也 000
+→ 二分：链与 ipset 两节点完全一致且正确 → 包没走到策略判定
+→ 抓包定论：SYN 到达目标节点但不回 SYN-ACK，且源是 tunl0 地址 10.244.235.192 而非 Pod IP
+→ 根因：flannel 迁移残留 FLANNEL-POSTRTG 链把 10.244.0.0/16 全量 MASQUERADE，
+        源被 SNAT 成隧道接口地址 → 基于源 IP 的 ipset 匹配失败 → 默认拒绝
+→ 修复：iptables -t nat -D POSTROUTING -m comment --comment "flanneld masq" -j FLANNEL-POSTRTG
+         iptables -t nat -F FLANNEL-POSTRTG && iptables -t nat -X FLANNEL-POSTRTG
+→ 教训：换 CNI 必须清理旧 CNI 的 iptables 残留（资源删了≠规则删了）；
+        NetworkPolicy 按源 IP 匹配，隐藏 SNAT 会静默毁掉策略——排障先看源 IP 对不对</div>
           <p>这些都是你亲手踩过并修好的案例——<b>面试就是讲这个</b>，比背概念有说服力十倍。</p>`}
       ]}
     ]
@@ -987,7 +998,8 @@ spec:
   ingress:
     - from: [{ podSelector: { matchLabels: { app: frontend } } }]
       ports: [{ port: 80 }]</div>
-          <p class="kbox"><b>面试必答：</b>创建 NetworkPolicy 后，未匹配到的流量<b>默认被拒</b>（白名单模型）。所以要先写 deny-all 再写放行规则（默认拒绝 + 显式放行）。这也正是从 flannel 迁 Calico 的动机。</p>`}
+          <p class="kbox"><b>面试必答：</b>创建 NetworkPolicy 后，未匹配到的流量<b>默认被拒</b>（白名单模型）。所以要先写 deny-all 再写放行规则（默认拒绝 + 显式放行）。这也正是从 flannel 迁 Calico 的动机。</p>
+          <p class="kbox"><b>实战雷区：</b>NetworkPolicy 按<b>源 IP</b> 匹配放行（Calico 用 ipset 存集合）。一旦流量路径上有隐藏 SNAT（如 CNI 迁移残留的 flannel MASQUERADE 规则），源变成隧道接口地址，策略就<b>静默失效</b>——现象是"同节点通、跨节点不通"，排障先抓包看源 IP（详见案例库 5）。</p>`}
       ]},
       { title:'Istio Service Mesh', points:[
         { id:8, title:'Service Mesh 是什么', tags:['重要','面试'],
